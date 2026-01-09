@@ -1,0 +1,33 @@
+package com.example.kubeevent.daten;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
+public interface K8sEventRepository extends JpaRepository<K8sEvent, Long> {
+    
+    // Findet die letzten 100 Events
+    List<K8sEvent> findTop100ByOrderByCreatedAtDesc();
+
+    // Suche mit Like über mehrere Felder
+    @Query("SELECT e FROM K8sEvent e WHERE " +
+           "LOWER(e.message) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.involvedName) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.involvedKind) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.namespace) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.reason) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(e.type) LIKE LOWER(CONCAT('%', :q, '%'))")
+    Page<K8sEvent> searchEvents(@Param("q") String q, Pageable pageable);
+
+    @Transactional
+    int deleteByCreatedAtBefore(OffsetDateTime threshold);
+
+    boolean existsByUidAndCount(String uid, Integer count);
+}
