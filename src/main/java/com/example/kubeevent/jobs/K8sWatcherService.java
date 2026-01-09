@@ -60,10 +60,10 @@ public class K8sWatcherService {
             String targetNs = ns.trim();
             log.info("[WATCH] Setting up watcher for namespace: {}", targetNs);
 
-            // 1️⃣ Beim Start: vorhandene Events importieren
+            // Beim Start: vorhandene Events importieren
             importExistingEvents(targetNs);
 
-            // 2️⃣ Danach: Live-Watcher starten
+            // Danach: Live-Watcher starten
             startInformer(targetNs);
         }
 
@@ -72,7 +72,7 @@ public class K8sWatcherService {
     }
 
     // ---------------------------------------------------------
-    // 1️⃣ EXISTING EVENTS IMPORT
+    // EXISTING EVENTS IMPORT
     // ---------------------------------------------------------
     private void importExistingEvents(String namespace) {
         try {
@@ -94,7 +94,7 @@ public class K8sWatcherService {
     }
 
     // ---------------------------------------------------------
-    // 2️⃣ LIVE WATCHER
+    // LIVE WATCHER
     // ---------------------------------------------------------
     private void startInformer(String namespace) {
         SharedIndexInformer<CoreV1Event> informer = factory.sharedIndexInformerFor(
@@ -130,7 +130,7 @@ public class K8sWatcherService {
     }
 
     // ---------------------------------------------------------
-    // 3️⃣ EVENT PROCESSING
+    // EVENT PROCESSING
     // ---------------------------------------------------------
     private void processIncomingEvent(CoreV1Event rawEvent) {
         try {
@@ -142,15 +142,33 @@ public class K8sWatcherService {
                 return;
             }
 
+            String namespace = rawEvent.getMetadata().getNamespace();
+            String type = rawEvent.getType();
+            String reason = rawEvent.getReason();
+            String message = rawEvent.getMessage();
+
+            String kind = rawEvent.getInvolvedObject().getKind();
+            String name = rawEvent.getInvolvedObject().getName();
+
+            // Deployment extrahieren (wie im Python-Exporter)
+            String deployment = null;
+            if ("ReplicaSet".equals(kind) && name.contains("-")) {
+                deployment = name.substring(0, name.lastIndexOf("-"));
+            }
+
+            // Component extrahieren (wie im Python-Exporter)
+            String component = extractComponent(rawEvent);
+
+            // Event speichern
             K8sEvent entity = K8sEvent.builder()
                     .uid(uid)
                     .name(rawEvent.getMetadata().getName())
-                    .namespace(rawEvent.getMetadata().getNamespace())
-                    .reason(rawEvent.getReason())
-                    .type(rawEvent.getType())
-                    .message(rawEvent.getMessage())
-                    .involvedKind(rawEvent.getInvolvedObject().getKind())
-                    .involvedName(rawEvent.getInvolvedObject().getName())
+                    .namespace(namespace)
+                    .reason(reason)
+                    .type(type)
+                    .message(message)
+                    .involvedKind(kind)
+                    .involvedName(name)
                     .count(count)
                     .firstTimestamp(rawEvent.getFirstTimestamp())
                     .lastTimestamp(rawEvent.getLastTimestamp())
@@ -158,20 +176,23 @@ public class K8sWatcherService {
 
             repository.save(entity);
 
-            metricsService.incrementEvent(
-                    entity.getNamespace(),
-                    entity.getType(),
-                    entity.getInvolvedKind(),
-                    entity.getInvolvedName(),
-                    entity.getReason());
+            metricsService.incrementEventFull(
+                    namespace,
+                    type,
+                    kind,
+                    name,
+                    reason,
+                    component,
+                    deployment);
 
         } catch (Exception e) {
             log.error("[WATCH] Error saving event: {}", e.getMessage());
+            metricsService.incrementError();
         }
     }
 
     // ---------------------------------------------------------
-    // 4️⃣ SAFE COUNT HANDLING
+    // Helper
     // ---------------------------------------------------------
     private Integer safeCount(CoreV1Event event) {
         if (event.getCount() != null) {
@@ -181,6 +202,13 @@ public class K8sWatcherService {
             return event.getSeries().getCount();
         }
         return 1;
+    }
+
+    private String extractComponent(CoreV1Event event) {
+        if (event.getSource() != null && event.getSource().getComponent() != null) {
+            return event.getSource().getComponent();
+        }
+        return "unknown";
     }
 
 }
