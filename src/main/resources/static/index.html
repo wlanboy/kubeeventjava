@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+
+<head>
+    <meta charset="utf-8">
+    <title>Kubernetes Events Viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        main.container-fluid {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: var(--pico-spacing);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab.active {
+            font-weight: bold;
+        }
+
+        nav ul#streamPagination,
+        nav ul#searchPagination {
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="container">
+
+        <h1>Kubernetes Events</h1>
+
+        <nav>
+            <ul>
+                <li><a href="#" data-tab="stream" class="tab active">Stream</a></li>
+                <li><a href="#" data-tab="search" class="tab">Suche</a></li>
+                <li><a href="#" data-tab="stats" class="tab">Stats</a></li>
+            </ul>
+        </nav>
+
+        <!-- STREAM TAB -->
+        <section id="tab-stream" class="tab-content active">
+            <fieldset role="group">
+                <input id="streamFilter" type="search" placeholder="Filter (Type, Reason, Message, Name, Namespace...)">
+
+                <select id="limitSelect" style="max-width: 150px;">
+                    <option value="20">20 Events</option>
+                    <option value="50">50 Events</option>
+                    <option value="100" selected>100 Events</option>
+                    <option value="200">200 Events</option>
+                    <option value="500">500 Events</option>
+                    <option value="1000">1000 Events</option>
+                </select>
+
+                <button class="outline" onclick="document.getElementById('streamFilter').value=''; renderStream();"
+                    style="width: auto;">
+                    Reset
+                </button>
+            </fieldset>
+
+            <table id="streamTable">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Reason</th>
+                        <th>Message</th>
+                        <th>Object</th>
+                    </tr>
+                </thead>
+                <tbody id="streamBody"></tbody>
+            </table>
+            <nav aria-label="Pagination">
+                <ul id="streamPagination"></ul>
+            </nav>
+
+        </section>
+
+        <!-- SEARCH TAB -->
+        <section id="tab-search" class="tab-content">
+            <fieldset role="group">
+                <input id="searchInput" placeholder="Suchtext...">
+                <button id="searchBtn">Suchen</button>
+            </fieldset>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Type</th>
+                        <th>Reason</th>
+                        <th>Message</th>
+                        <th>Object</th>
+                    </tr>
+                </thead>
+                <tbody id="searchResults"></tbody>
+            </table>
+
+            <nav aria-label="Pagination">
+                <ul id="searchPagination"></ul>
+            </nav>
+
+        </section>
+
+        <!-- STATS TAB -->
+        <section id="tab-stats" class="tab-content">
+            <h3>Statistiken</h3>
+            <div id="statsList" style="margin-bottom: 2rem;">
+                <ul id="statsList"></ul>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/app.js"></script>
+
+</body>
+
+</html>
