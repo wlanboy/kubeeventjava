@@ -1,0 +1,132 @@
+{
+  "title": "Node Detail",
+  "uid": "kube-node-detail",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource"
+      },
+      {
+        "name": "host",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Node",
+        "query": "label_values(kubeevents_node_total, host)"
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "type": "stat",
+      "title": "Total Events on Node",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 3 },
+      "targets": [
+        {
+          "expr": "sum(kubeevents_node_total{host=\"$host\"})"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events per Second (Node)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 4, "y": 0, "w": 20, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_node_total{host=\"$host\"}[5m])",
+          "legendFormat": "Events/s"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Component (kubelet / scheduler / controllers)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_component_total{host=\"$host\"}[5m])",
+          "legendFormat": "{{component}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Pod Events on Node",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_pod_total{host=\"$host\"}[5m])",
+          "legendFormat": "{{namespace}} / {{pod}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "CrashLoop / BackOff (Pods on Node)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pod_total{host=\"$host\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
+          "legendFormat": "{{pod}} / {{reason}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Scheduling Failures (Pods on Node)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pod_total{host=\"$host\", reason=\"FailedScheduling\"}[5m])",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Deployment Events (Pods on Node)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_deployment_total{host=\"$host\"}[5m])",
+          "legendFormat": "{{namespace}} / {{deployment}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Spike Detection (Node)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "idelta(kubeevents_node_total{host=\"$host\"}[5m])",
+          "legendFormat": "Spike"
+        }
+      ]
+    }
+  ]
+}

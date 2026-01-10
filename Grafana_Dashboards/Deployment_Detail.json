@@ -1,0 +1,130 @@
+{
+  "title": "Deployment Detail",
+  "uid": "kube-deployment-detail",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "10s",
+
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Namespace",
+        "query": "label_values(kubeevents_deployment_total, namespace)"
+      },
+      {
+        "name": "deployment",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Deployment",
+        "query": "label_values(kubeevents_deployment_total{namespace=\"$namespace\"}, deployment)"
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "type": "stat",
+      "title": "Total Events for Deployment",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 3 },
+      "targets": [
+        {
+          "expr": "sum(kubeevents_deployment_total{namespace=\"$namespace\", deployment=\"$deployment\"})"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events per Second (Deployment)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 4, "y": 0, "w": 20, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_deployment_total{namespace=\"$namespace\", deployment=\"$deployment\"}[5m])",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "ReplicaSet & Scaling Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"ReplicaSet\", reason=\"SuccessfulCreate\"}[5m])",
+          "legendFormat": "ReplicaSet SuccessfulCreate"
+        },
+        {
+          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"Deployment\", involved_name=\"$deployment\", reason=\"ScalingReplicaSet\"}[5m])",
+          "legendFormat": "ScalingReplicaSet"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Pod CrashLoop / BackOff (Deployment Pods)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", pod=~\"$deployment.*\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
+          "legendFormat": "{{pod}} / {{reason}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Pod Scheduling Failures (FailedScheduling)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", pod=~\"$deployment.*\", reason=\"FailedScheduling\"}[5m])",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Node (Deployment Pods)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_node_total{namespace=\"$namespace\"}[5m])",
+          "legendFormat": "{{host}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Component (Deployment Pods)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_component_total{namespace=\"$namespace\"}[5m])",
+          "legendFormat": "{{component}}"
+        }
+      ]
+    }
+  ]
+}
