@@ -156,7 +156,9 @@ public class K8sWatcherService {
             }
 
             String component = rawEvent.getSource() != null ? rawEvent.getSource().getComponent() : "unknown"; 
-            String host = rawEvent.getSource() != null ? rawEvent.getSource().getHost() : "unknown";
+            String host = rawEvent.getSource() != null && rawEvent.getSource().getHost() != null
+                        ? rawEvent.getSource().getHost()
+                        : "unknown";
 
             // Event speichern
             K8sEvent entity = K8sEvent.builder()
