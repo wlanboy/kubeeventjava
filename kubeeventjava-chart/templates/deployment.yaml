@@ -28,16 +28,16 @@ spec:
               subPath: .env
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /actuator/health/liveness
               port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
 
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: /actuator/health/readiness
               port: {{ .Values.service.targetPort }}
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 5
       volumes:
         - name: tmp-volume
