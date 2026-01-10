@@ -22,6 +22,7 @@ public class MetricsService {
                         String component,
                         String host,
                         String deployment) {
+
                 // 1) Gesamt
                 Counter.builder("kubeevents_total")
                                 .register(registry)
@@ -29,52 +30,56 @@ public class MetricsService {
 
                 // 2) Typ
                 Counter.builder("kubeevents_type_total")
-                                .tag("type", type)
+                                .tag("type", safe(type))
                                 .register(registry)
                                 .increment();
 
                 // 3) Namespace
                 Counter.builder("kubeevents_namespace_total")
-                                .tag("namespace", namespace)
+                                .tag("namespace", safe(namespace))
                                 .register(registry)
                                 .increment();
 
                 // 4) Namespace + Typ
                 Counter.builder("kubeevents_namespace_type_total")
-                                .tag("namespace", namespace)
-                                .tag("type", type)
+                                .tag("namespace", safe(namespace))
+                                .tag("type", safe(type))
                                 .register(registry)
                                 .increment();
 
                 // 5) Involved Object
                 Counter.builder("kubeevents_involved_total")
-                                .tag("namespace", namespace)
-                                .tag("type", type)
-                                .tag("kind", kind)
-                                .tag("involved_name", name)
-                                .tag("reason", reason)
-                                .tag("component", component)
+                                .tag("namespace", safe(namespace))
+                                .tag("type", safe(type))
+                                .tag("kind", safe(kind))
+                                .tag("involved_name", safe(name))
+                                .tag("reason", safe(reason))
+                                .tag("component", safe(component))
                                 .register(registry)
                                 .increment();
 
-                // 6) Component (NEU)
-                Counter.builder("kubeevents_component_total")
-                                .tag("component", component)
-                                .register(registry)
-                                .increment();
+                // 6) Component
+                if ("component" != null) {
+                        Counter.builder("kubeevents_component_total")
+                                        .tag("component", safe(component))
+                                        .register(registry)
+                                        .increment();
+                }
 
-                // 7) Node/Host (NEU)
-                Counter.builder("kubeevents_node_total")
-                                .tag("host", host)
-                                .register(registry)
-                                .increment();
+                // 7) Node/Host
+                if ("deployment" != null) {
+                        Counter.builder("kubeevents_node_total")
+                                        .tag("host", safe(host))
+                                        .register(registry)
+                                        .increment();
+                }
 
                 // 8) Deployment
-                if (deployment != null) {
+                if ("deployment" != null) {
                         Counter.builder("kubeevents_deployment_total")
-                                        .tag("namespace", namespace)
-                                        .tag("deployment", deployment)
-                                        .tag("type", type)
+                                        .tag("namespace", safe(namespace))
+                                        .tag("deployment", safe(deployment))
+                                        .tag("type", safe(type))
                                         .register(registry)
                                         .increment();
                 }
@@ -82,9 +87,9 @@ public class MetricsService {
                 // 9) Pod
                 if ("Pod".equals(kind)) {
                         Counter.builder("kubeevents_pod_total")
-                                        .tag("namespace", namespace)
-                                        .tag("pod", name)
-                                        .tag("type", type)
+                                        .tag("namespace", safe(namespace))
+                                        .tag("pod", safe(name))
+                                        .tag("type", safe(type))
                                         .register(registry)
                                         .increment();
                 }
@@ -104,4 +109,7 @@ public class MetricsService {
                                 .increment();
         }
 
+        private String safe(String v) {
+                return (v == null || v.isBlank()) ? "unknown" : v;
+        }
 }
