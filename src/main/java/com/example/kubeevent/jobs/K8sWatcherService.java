@@ -180,7 +180,8 @@ public class K8sWatcherService {
             metricsService.incrementEventFull( namespace, type, kind, name, reason, component, host, deployment );
 
         } catch (Exception e) {
-            log.error("[WATCH] Error saving event: {}", e.getMessage());
+            log.error("[WATCH] Error saving event: {}", e);
+            try { log.error("[WATCH] Failed event details: {}", rawEvent); } catch (Exception ignored) {}
             metricsService.incrementError();
         }
     }
