@@ -27,6 +27,8 @@ function createEventRowHtml(ev, isSearch = false) {
     const createdAt = ev.createdAt || ev.created_at;
     const involvedKind = ev.involvedKind || ev.involved_kind;
     const involvedName = ev.involvedName || ev.involved_name;
+    const host = ev.sourceHost || ev.source_host || "unknown";
+    const component = ev.sourceComponent || ev.source_component || "unknown";
 
     const date = isSearch
         ? new Date(createdAt).toLocaleString()
@@ -63,10 +65,16 @@ function createEventRowHtml(ev, isSearch = false) {
                 </kbd>
                 <div style="line-height: 1.2;">
                     <div style="color: var(--pico-muted-color); font-size: 0.75rem;">
-                        <a href="javascript:void(0)" onclick="applyFilter('${ev.namespace}')" style="color:inherit">${ev.namespace}</a>
+                        <a href="javascript:void(0)" onclick="applyFilter('${ev.namespace}')" style="color:inherit">NS: ${ev.namespace}</a>
                     </div>
                     <div style="font-weight: bold; color: var(--pico-contrast);">
-                        <a href="javascript:void(0)" onclick="applyFilter('${involvedName}')" style="color:inherit">${involvedName}</a>
+                        <a href="javascript:void(0)" onclick="applyFilter('${involvedName}')" style="color:inherit">ID: ${involvedName}</a>
+                    </div>
+                    <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
+                        <a href="javascript:void(0)" onclick="applyFilter('${host}')" style="color:inherit">Host: ${host}</a>
+                    </div>
+                    <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
+                        <a href="javascript:void(0)" onclick="applyFilter('${component}')" style="color:inherit">Component: ${component}</a>
                     </div>
                 </div>
             </div>
@@ -101,14 +109,26 @@ function renderStream() {
     const filter = streamFilter.value.toLowerCase();
     const filtered = latestEvents.filter(ev => {
         const f = filter;
-        return !f ||
-            (ev.type && ev.type.toLowerCase().includes(f)) ||
-            (ev.reason && ev.reason.toLowerCase().includes(f)) ||
-            (ev.message && ev.message.toLowerCase().includes(f)) ||
-            (ev.involved_name && ev.involved_name.toLowerCase().includes(f)) ||
-            (ev.involved_kind && ev.involved_kind.toLowerCase().includes(f)) ||
-            (ev.namespace && ev.namespace.toLowerCase().includes(f));
+        if (!f) return true;
+
+        const fLower = f.toLowerCase();
+
+        return (
+            (ev.type && ev.type.toLowerCase().includes(fLower)) ||
+            (ev.reason && ev.reason.toLowerCase().includes(fLower)) ||
+            (ev.message && ev.message.toLowerCase().includes(fLower)) ||
+            ((ev.involvedName || ev.involved_name) &&
+                (ev.involvedName || ev.involved_name).toLowerCase().includes(fLower)) ||
+            ((ev.involvedKind || ev.involved_kind) &&
+                (ev.involvedKind || ev.involved_kind).toLowerCase().includes(fLower)) ||
+            (ev.namespace && ev.namespace.toLowerCase().includes(fLower)) ||
+            ((ev.sourceHost || ev.source_host) &&
+                (ev.sourceHost || ev.source_host).toLowerCase().includes(fLower)) ||
+            ((ev.sourceComponent || ev.source_component) &&
+                (ev.sourceComponent || ev.source_component).toLowerCase().includes(fLower))
+        );
     });
+
 
     const pageData = paginate(filtered);
     streamBody.innerHTML = "";

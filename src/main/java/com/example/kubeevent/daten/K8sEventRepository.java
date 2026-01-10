@@ -16,14 +16,18 @@ public interface K8sEventRepository extends JpaRepository<K8sEvent, Long> {
     List<K8sEvent> findTop100ByOrderByCreatedAtDesc();
 
     // Suche mit Like über mehrere Felder
-    @Query("SELECT e FROM K8sEvent e WHERE " +
-           "LOWER(e.message) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.involvedName) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.involvedKind) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.namespace) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.reason) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-           "LOWER(e.type) LIKE LOWER(CONCAT('%', :q, '%'))")
+    @Query("""
+    SELECT e FROM K8sEvent e WHERE 
+        LOWER(e.message) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.involvedName) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.involvedKind) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.namespace) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.reason) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.type) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.sourceComponent) LIKE LOWER(CONCAT('%', :q, '%')) OR
+        LOWER(e.sourceHost) LIKE LOWER(CONCAT('%', :q, '%'))
+    """)
     Page<K8sEvent> searchEvents(@Param("q") String q, Pageable pageable);
 
     @Transactional
