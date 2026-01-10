@@ -150,14 +150,13 @@ public class K8sWatcherService {
             String kind = rawEvent.getInvolvedObject().getKind();
             String name = rawEvent.getInvolvedObject().getName();
 
-            // Deployment extrahieren (wie im Python-Exporter)
             String deployment = null;
             if ("ReplicaSet".equals(kind) && name.contains("-")) {
                 deployment = name.substring(0, name.lastIndexOf("-"));
             }
 
-            // Component extrahieren (wie im Python-Exporter)
-            String component = extractComponent(rawEvent);
+            String component = rawEvent.getSource() != null ? rawEvent.getSource().getComponent() : "unknown"; 
+            String host = rawEvent.getSource() != null ? rawEvent.getSource().getHost() : "unknown";
 
             // Event speichern
             K8sEvent entity = K8sEvent.builder()
@@ -169,6 +168,8 @@ public class K8sWatcherService {
                     .message(message)
                     .involvedKind(kind)
                     .involvedName(name)
+                    .sourceComponent(component) 
+                    .sourceHost(host)
                     .count(count)
                     .firstTimestamp(rawEvent.getFirstTimestamp())
                     .lastTimestamp(rawEvent.getLastTimestamp())
@@ -176,14 +177,7 @@ public class K8sWatcherService {
 
             repository.save(entity);
 
-            metricsService.incrementEventFull(
-                    namespace,
-                    type,
-                    kind,
-                    name,
-                    reason,
-                    component,
-                    deployment);
+            metricsService.incrementEventFull( namespace, type, kind, name, reason, component, host, deployment );
 
         } catch (Exception e) {
             log.error("[WATCH] Error saving event: {}", e.getMessage());
@@ -202,13 +196,6 @@ public class K8sWatcherService {
             return event.getSeries().getCount();
         }
         return 1;
-    }
-
-    private String extractComponent(CoreV1Event event) {
-        if (event.getSource() != null && event.getSource().getComponent() != null) {
-            return event.getSource().getComponent();
-        }
-        return "unknown";
     }
 
 }
