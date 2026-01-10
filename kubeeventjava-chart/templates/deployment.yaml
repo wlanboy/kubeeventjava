@@ -20,12 +20,13 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.deploymentName }}-env
           volumeMounts:
             - name: tmp-volume
               mountPath: {{ .Values.volume.mountPath }}
-            - name: env-file 
-              mountPath: /app/.env 
-              subPath: .env
+
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -39,13 +40,8 @@ spec:
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 5
+
       volumes:
         - name: tmp-volume
           persistentVolumeClaim:
             claimName: {{ .Values.pvc.name }}
-        - name: env-file 
-          configMap: 
-            name: {{ .Values.deploymentName }}-env
-            items: 
-              - key: .env 
-                path: .env
