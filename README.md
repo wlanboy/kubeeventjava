@@ -28,10 +28,17 @@ docker run --rm --name kubeeventjava \
 
 ## Run service in cluster
 ```bash
-POD=$(kubectl get pod -n kubeevent -l app=kubeevent -o jsonpath='{.items[0].metadata.name}')
+POD=$(kubectl get pod -n kubeeventjava -l app=kubeeventjava -o jsonpath='{.items[0].metadata.name}')
 
 curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
 
-mirrord exec -t pod/$POD -n kubeevent  -- mvn spring-boot:run
+mirrord exec -t pod/$POD -n kubeeventjava  -- mvn spring-boot:run
 ```
 
+## Create Events
+```bash
+kubectl create deployment demoapp -n kubeeventjava --image=nginx
+kubectl scale deployment demoapp -n kubeeventjava --replicas=2
+kubectl scale deployment demoapp -n kubeeventjava --replicas=0
+kubectl delete deployment demoapp -n kubeeventjava
+```
