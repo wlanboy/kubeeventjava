@@ -1,0 +1,58 @@
+image:
+  repository: wlanboy/kubeeventjava
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+deploymentName: kubeeventjava
+
+service:
+  name: kubeeventjava-svc
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+pvc:
+  enabled: true
+  name: kubeeventjava-tmp-pvc
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "local-path"
+  size: "100Mi"
+
+volume:
+  mountPath: /tmp
+
+istio:
+  gatewayName: kubeeventjava-gw
+  gatewayNamespace: "istio-ingress"
+  hosts: 
+    - kubeeventjava.tp.lan
+    - kubeeventjava.gmk.lan
+  tls:
+    enabled: true
+    secretName: kubeeventjava-tls
+
+certManager:
+  enabled: true
+  issuerRef:
+    kind: ClusterIssuer
+    name: "local-ca-issuer"
+  dnsNames:
+    - kubeeventjava.tp.lan
+    - kubeeventjava.gmk.lan
+
+serviceAccount:
+  create: true
+  name: kubeeventjavasa
+
+watchNamespaces:
+  - kubeeventjava
+  - simpleservice
+  - randomfail
+
+envConfig:
+  enabled: true
+  data: |
+    DB_PATH=jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count
+    POD_NAMESPACE=kubeeventjava,simpleservice,randomfail

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kubeeventjava
+description: Kube Event Java Listener deployment with Istio Gateway and cert-manager
+type: application
+version: 0.1.0
+appVersion: "latest"
