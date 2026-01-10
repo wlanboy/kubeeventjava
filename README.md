@@ -14,6 +14,18 @@ mkdir data
 mvn spring-boot:run
 ```
 
+## Docker build and run
+```bash
+docker build -t kubeevent:latest .
+
+docker run --rm --name kubeeventjava \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
+  -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
+  kubeevent:latest
+```
+
 ## Run service in cluster
 ```bash
 POD=$(kubectl get pod -n kubeevent -l app=kubeevent -o jsonpath='{.items[0].metadata.name}')
