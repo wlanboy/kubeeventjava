@@ -40,6 +40,10 @@ public class K8sEvent {
     private String involvedKind;
     private String involvedName;
 
+    private String sourceComponent;
+
+    private String sourceHost;
+
     private OffsetDateTime firstTimestamp;
     private OffsetDateTime lastTimestamp;
     
