@@ -4,6 +4,7 @@ kind: ConfigMap
 metadata:
   name: {{ .Values.deploymentName }}-env
 data:
-  .env: |
-{{ .Values.envConfig.data | indent 4 }}
+{{- range $key, $value := .Values.env }}
+  {{ $key }}: "{{ $value }}"
+{{- end }}
 {{- end }}
