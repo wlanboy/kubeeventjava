@@ -6,7 +6,46 @@ A minimal frontend for live event streaming, searching, filtering, and paginatio
 Prometheus metrics for monitoring event activity
 A clean, self‑contained solution for debugging clusters and understanding workload behavior
 
+![K8s Events](screenshots/kubeevents.png)
 Java version of https://github.com/wlanboy/kubeevent
+
+## Features
+### Real‑time Event Stream
+- Uses Kubernetes’ watch API
+- Streams events via Server‑Sent Events (SSE)
+- Client‑side filtering (type, reason, message, namespace, involved object)
+
+### Prometheus Metrics
+Exposes /metrics with:
+- Events by type (Normal, Warning, Error)
+- Events by workernode, kubelet, scheduler, controller
+- Events by namespace, deployment, pod
+
+### Persistent Storage
+- Stores all events in a SQLModel/SQLite (or any SQLModel‑compatible DB)
+- Prevents event loss
+- Allows historical search
+
+## Architecture Overview
+```
++-------------------+        +---------------------+
+| Kubernetes API     | ----> | FastAPI Watcher     |
+| (Events)           |       | (k8s_watcher.py)    |
++-------------------+        +---------------------+
+                                    |
+                                    v
+                           +------------------+
+                           | SQLModel Storage |
+                           +------------------+
+                                    |
+                                    v
++-------------------+        +---------------------+
+| Frontend (HTML/JS)| <----> | FastAPI REST + SSE  |
+| Live Stream + UI  |        | /events/stream      |
++-------------------+        | /events/search      |
+                             | /metrics            |
+                             +---------------------+
+```
 
 ## Start service
 ```bash
@@ -28,6 +67,11 @@ docker run --rm --name kubeeventjava \
 
 ## Run service in cluster
 ```bash
+cd kubeevent-chart
+helm install kubeevent . -n kubeevent --create-namespace
+
+cd ..
+
 POD=$(kubectl get pod -n kubeeventjava -l app=kubeeventjava -o jsonpath='{.items[0].metadata.name}')
 
 curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
