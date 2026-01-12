@@ -42,7 +42,7 @@ COPY --from=build /app/snapshot-dependencies/ ./
 # Application
 COPY --from=build /app/application/ ./
 
-COPY config/application.properties /app/config/application.properties
+COPY containerconfig/application.properties /app/config/application.properties
 COPY entrypoint.sh /app/entrypoint.sh
 
 EXPOSE 8080
