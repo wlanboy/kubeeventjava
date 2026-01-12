@@ -77,17 +77,6 @@ POD=$(kubectl get pod -n kubeeventjava -l app=kubeeventjava -o jsonpath='{.items
 curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
 
 mirrord exec -t pod/$POD -n kubeeventjava -- mvn spring-boot:run
-
-export DB_PATH="jdbc:h2:file:./data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count"
-mirrord exec -t pod/$POD -n kubeeventjava \
-  -- \
-  docker run --rm --name kubeeventjava \
-    -p 8080:8080 \
-    -v $(pwd)/data:/app/data \
-    -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
-    -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
-    kubeevent:latest
-
 ```
 
 ## Create Events
