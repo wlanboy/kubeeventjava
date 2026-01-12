@@ -7,14 +7,18 @@ WORKDIR /app
 
 # Erst nur die Dependencies
 COPY --chown=185:0 pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests dependency:go-offline
 
 # Dann erst der Sourcecode
 COPY --chown=185:0 src ./src
-RUN mvn -q -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package
+
+# Wir behalten das JAR für das Training UND extrahieren die Layer
+RUN cp target/kubeevent-0.0.1-SNAPSHOT.jar app.jar && \
+    java -Djarmode=layertools -jar app.jar extract
 
 # ============================
-# 2. Runtime Stage
+# 3. Runtime Stage
 # ============================
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
 
@@ -30,9 +34,20 @@ RUN mkdir -p /app/config /app/data && \
 
 USER 185
 
-COPY --from=build /app/target/kubeevent-0.0.1-SNAPSHOT.jar /app/kubeevent.jar
+# Dependencies 
+COPY --from=build /app/dependencies/ ./
+COPY --from=build /app/spring-boot-loader/ ./
+COPY --from=build /app/snapshot-dependencies/ ./
+
+# Application
+COPY --from=build /app/application/ ./
+
 COPY config/application.properties /app/config/application.properties
+COPY entrypoint.sh /app/entrypoint.sh
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/kubeevent.jar", "--spring.config.location=file:/app/config/application.properties"]
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["/app/entrypoint.sh"]
