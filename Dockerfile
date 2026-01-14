@@ -11,14 +11,14 @@ COPY --chown=185:0 pom.xml .
 # → Nur die pom.xml wird kopiert, damit Maven bereits alle Dependencies auflösen kann,
 #   ohne dass sich der Sourcecode ändert. Das verbessert das Layer-Caching.
 
-RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests dependency:go-offline
+RUN --mount=type=cache,target=/home/jboss/.m2 mvn -q -DskipTests dependency:go-offline
 # → Lädt alle Maven-Dependencies vorab herunter.
 # → --mount=type=cache sorgt dafür, dass das lokale Maven-Repository zwischen Builds gecached wird.
 
 COPY --chown=185:0 src ./src
 # → Jetzt erst der Sourcecode, damit Änderungen am Code nicht das Dependency-Layer invalidieren.
 
-RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package
+RUN --mount=type=cache,target=/home/jboss/.m2 mvn -q -DskipTests package
 # → Baut das eigentliche JAR.
 # → Wieder mit Maven-Cache, um Build-Zeit zu sparen.
 
