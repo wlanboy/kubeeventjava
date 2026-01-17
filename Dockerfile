@@ -32,9 +32,17 @@ RUN cp target/kubeevent-0.0.1-SNAPSHOT.jar app.jar && \
 # → Vorteil: Docker kann diese Layer getrennt cachen → schnellere Deployments.
 
 # ============================
-# 3. Runtime Stage
+# 2. Runtime Stage
 # ============================
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
+
+# OCI-konforme Labels
+LABEL org.opencontainers.image.title="KubeEvent Java" \
+      org.opencontainers.image.description="Kubernetes Event Watcher and Dashboard" \
+      org.opencontainers.image.version="0.0.1-SNAPSHOT" \
+      org.opencontainers.image.vendor="wlanboy" \
+      org.opencontainers.image.source="https://github.com/example/kubeeventjava" \
+      org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app
 
@@ -64,10 +72,10 @@ COPY --from=build /app/snapshot-dependencies/ ./
 COPY --from=build /app/application/ ./
 # → Der eigentliche Applikationscode (Kompilat). Ändert sich.
 
-COPY containerconfig/application.properties /app/config/application.properties
+COPY --chown=185:0 containerconfig/application.properties /app/config/application.properties
 # → Externe Konfiguration ins Config-Verzeichnis für die Referenz für ENV Vars
 
-COPY entrypoint.sh /app/entrypoint.sh
+COPY --chown=185:0 entrypoint.sh /app/entrypoint.sh
 # → Custom Entrypoint für Java OPTS.
 
 EXPOSE 8080
