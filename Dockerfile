@@ -1,48 +1,49 @@
 # ============================
-# 1. Build Stage
+# 1. Build Stage (Java 25)
 # ============================
-FROM registry.access.redhat.com/ubi9/openjdk-21:latest AS build
-# docker run --rm registry.access.redhat.com/ubi8/openjdk-21 id
-# uid=185(jboss) gid=0(root) groups=0(root),185(jboss)
+FROM registry.access.redhat.com/ubi9/openjdk-25:latest AS build
+# Eclipse Temurin bietet aktuelle Java-Versionen inkl. Java 25
 
 WORKDIR /app
 
-COPY --chown=185:0 pom.xml .
+COPY pom.xml .
 # → Nur die pom.xml wird kopiert, damit Maven bereits alle Dependencies auflösen kann,
 #   ohne dass sich der Sourcecode ändert. Das verbessert das Layer-Caching.
 
-RUN --mount=type=cache,target=/home/jboss/.m2 mvn -q -DskipTests dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests dependency:go-offline
 # → Lädt alle Maven-Dependencies vorab herunter.
 # → --mount=type=cache sorgt dafür, dass das lokale Maven-Repository zwischen Builds gecached wird.
 
-COPY --chown=185:0 src ./src
+COPY src ./src
 # → Jetzt erst der Sourcecode, damit Änderungen am Code nicht das Dependency-Layer invalidieren.
 
-RUN --mount=type=cache,target=/home/jboss/.m2 mvn -q -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package
 # → Baut das eigentliche JAR.
 # → Wieder mit Maven-Cache, um Build-Zeit zu sparen.
 
 RUN cp target/kubeevent-0.0.1-SNAPSHOT.jar app.jar && \
-    java -Djarmode=layertools -jar app.jar extract
-# → Spring Boot Layertools extrahieren das JAR in einzelne Layer:
-#     - dependencies
-#     - spring-boot-loader
+    java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
+# → Spring Boot 4.x Layertools: --launcher ist erforderlich um den Loader zu extrahieren
+# → Extrahierte Layer:
+#     - dependencies (BOOT-INF/lib)
+#     - spring-boot-loader (org/springframework/boot/loader/*)
 #     - snapshot-dependencies
-#     - application
+#     - application (BOOT-INF/classes)
 # → Vorteil: Docker kann diese Layer getrennt cachen → schnellere Deployments.
 
 # ============================
-# 2. Runtime Stage
+# 2. Runtime Stage (Java 25)
 # ============================
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest
+FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:latest
 
 # OCI-konforme Labels
 LABEL org.opencontainers.image.title="KubeEvent Java" \
       org.opencontainers.image.description="Kubernetes Event Watcher and Dashboard" \
       org.opencontainers.image.version="0.0.1-SNAPSHOT" \
       org.opencontainers.image.vendor="wlanboy" \
-      org.opencontainers.image.source="https://github.com/example/kubeeventjava" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.source="https://github.com/wlanboy/kubeeventjava" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.base.name="eclipse-temurin:25-jre"
 
 WORKDIR /app
 
@@ -54,28 +55,27 @@ RUN mkdir -p /app/config /app/data && \
     chmod -R g+w /app
 # → /app/config: für externe Konfigurationen
 # → /app/data: für persistente Daten
-# → chown: Eigentümer auf User 185 setzen, damit die App später ohne root läuft.
-# → chmod g+w: Gruppe darf schreiben → wichtig für OpenShift/PodSecurity-Kontexte.
+# → Non-root User für sicheren Betrieb
 
 USER 185
 # → Zurück zum nicht-privilegierten User.
 
-COPY --from=build /app/dependencies/ ./
+COPY --from=build --chown=185:185 /app/extracted/dependencies/ ./
 # → Kopiert nur die Dependency-Layer. Ändern sich selten.
 
-COPY --from=build /app/spring-boot-loader/ ./
+COPY --from=build --chown=185:185 /app/extracted/spring-boot-loader/ ./
 # → Enthält den Spring Boot Launcher (Main-Class Loader). Ändern sich selten.
 
-COPY --from=build /app/snapshot-dependencies/ ./
+COPY --from=build --chown=185:185 /app/extracted/snapshot-dependencies/ ./
 # → Snapshot-Dependencies (z. B. lokale libs), ändern sich häufiger.
 
-COPY --from=build /app/application/ ./
+COPY --from=build --chown=185:185 /app/extracted/application/ ./
 # → Der eigentliche Applikationscode (Kompilat). Ändert sich.
 
-COPY --chown=185:0 containerconfig/application.properties /app/config/application.properties
+COPY --chown=185:185 containerconfig/application.properties /app/config/application.properties
 # → Externe Konfiguration ins Config-Verzeichnis für die Referenz für ENV Vars
 
-COPY --chown=185:0 entrypoint.sh /app/entrypoint.sh
+COPY --chown=185:185 entrypoint.sh /app/entrypoint.sh
 # → Custom Entrypoint für Java OPTS.
 
 EXPOSE 8080
@@ -84,6 +84,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 # → Nutzt den Spring Boot Actuator Health Endpoint.
+# → Alternativ: wget oder ein einfacher TCP-Check
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 # → Startet die App über das Entry-Skript.
