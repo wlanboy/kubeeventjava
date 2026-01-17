@@ -21,22 +21,23 @@ import java.util.Map;
 @RequestMapping("/events")
 public class K8sEventController {
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final K8sEventRepository repository;
 
-    @GetMapping("/events/latest")
+    @GetMapping("/latest")
     public List<K8sEvent> latestEvents() {
         return repository.findTop100ByOrderByCreatedAtDesc();
     }
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<List<K8sEvent>> streamEvents(@RequestParam(defaultValue = "100") int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, MAX_PAGE_SIZE));
         return Flux.interval(Duration.ZERO, Duration.ofSeconds(2))
                 .map(sequence -> {
-                    // Wir holen die neuesten Events (limit beachten)
-                    PageRequest pageRequest = PageRequest.of(0, limit, Sort.by("createdAt").descending());
+                    PageRequest pageRequest = PageRequest.of(0, safeLimit, Sort.by("createdAt").descending());
                     return repository.findAll(pageRequest).getContent();
-                })
-                .log();
+                });
     }
 
     @GetMapping("/search")
@@ -45,8 +46,12 @@ public class K8sEventController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int page_size) {
 
+        // Validierung: page mindestens 1, page_size zwischen 1 und MAX_PAGE_SIZE
+        int safePage = Math.max(1, page);
+        int safePageSize = Math.max(1, Math.min(page_size, MAX_PAGE_SIZE));
+
         // app.js sendet page=1-basiert, Spring nutzt page=0-basiert
-        PageRequest pageRequest = PageRequest.of(page - 1, page_size, Sort.by("createdAt").descending());
+        PageRequest pageRequest = PageRequest.of(safePage - 1, safePageSize, Sort.by("createdAt").descending());
         Page<K8sEvent> resultPage;
 
         if (q != null && !q.isEmpty()) {
@@ -58,8 +63,8 @@ public class K8sEventController {
         return Map.of(
                 "items", resultPage.getContent(),
                 "total", resultPage.getTotalElements(),
-                "page", page,
-                "page_size", page_size,
+                "page", safePage,
+                "page_size", safePageSize,
                 "pages", resultPage.getTotalPages());
     }
 }

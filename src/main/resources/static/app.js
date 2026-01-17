@@ -3,6 +3,16 @@ let currentPage = 1;
 let searchPage = 1;
 const SEARCH_PAGE_SIZE = 20;
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // --- Tabs ---
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", e => {
@@ -25,10 +35,14 @@ document.querySelectorAll(".tab").forEach(tab => {
 function createEventRowHtml(ev, isSearch = false) {
     // Unterstützt camelCase UND snake_case
     const createdAt = ev.createdAt || ev.created_at;
-    const involvedKind = ev.involvedKind || ev.involved_kind;
-    const involvedName = ev.involvedName || ev.involved_name;
-    const host = ev.sourceHost || ev.source_host || "unknown";
-    const component = ev.sourceComponent || ev.source_component || "unknown";
+    const involvedKind = escapeHtml(ev.involvedKind || ev.involved_kind);
+    const involvedName = escapeHtml(ev.involvedName || ev.involved_name);
+    const host = escapeHtml(ev.sourceHost || ev.source_host || "unknown");
+    const component = escapeHtml(ev.sourceComponent || ev.source_component || "unknown");
+    const namespace = escapeHtml(ev.namespace);
+    const type = escapeHtml(ev.type);
+    const reason = escapeHtml(ev.reason);
+    const message = escapeHtml(ev.message);
 
     const date = isSearch
         ? new Date(createdAt).toLocaleString()
@@ -47,15 +61,15 @@ function createEventRowHtml(ev, isSearch = false) {
 
     return `
         <td style="font-size: 0.8rem; vertical-align: top; white-space: nowrap;">${date}</td>
-        <td style="vertical-align: top; font-weight: bold; color: ${statusColor};">${ev.type || ""}</td>
-        <td style="vertical-align: top;"><code style="color: var(--pico-contrast);">${ev.reason || ""}</code></td>
+        <td style="vertical-align: top; font-weight: bold; color: ${statusColor};">${type}</td>
+        <td style="vertical-align: top;"><code style="color: var(--pico-contrast);">${reason}</code></td>
         <td>
             <div style="display: flex; align-items: flex-start; gap: 8px;">
                 ${ev.count > 1 ? `
                     <span style="background-color: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 1rem; font-size: 0.7rem; font-weight: bold; margin-top: 2px; white-space: nowrap;">
                         ${ev.count}x
                     </span>` : ''}
-                <span style="line-height: 1.5; font-size: 0.95rem;">${ev.message || ""}</span>
+                <span style="line-height: 1.5; font-size: 0.95rem;">${message}</span>
             </div>
         </td>
         <td style="font-size: 0.8rem; vertical-align: top;">
@@ -65,16 +79,16 @@ function createEventRowHtml(ev, isSearch = false) {
                 </kbd>
                 <div style="line-height: 1.2;">
                     <div style="color: var(--pico-muted-color); font-size: 0.75rem;">
-                        <a href="javascript:void(0)" onclick="applyFilter('${ev.namespace}')" style="color:inherit">NS: ${ev.namespace}</a>
+                        <a href="#" data-filter="${namespace}" class="filter-link" style="color:inherit">NS: ${namespace}</a>
                     </div>
                     <div style="font-weight: bold; color: var(--pico-contrast);">
-                        <a href="javascript:void(0)" onclick="applyFilter('${involvedName}')" style="color:inherit">ID: ${involvedName}</a>
+                        <a href="#" data-filter="${involvedName}" class="filter-link" style="color:inherit">ID: ${involvedName}</a>
                     </div>
                     <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
-                        <a href="javascript:void(0)" onclick="applyFilter('${host}')" style="color:inherit">Host: ${host}</a>
+                        <a href="#" data-filter="${host}" class="filter-link" style="color:inherit">Host: ${host}</a>
                     </div>
                     <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
-                        <a href="javascript:void(0)" onclick="applyFilter('${component}')" style="color:inherit">Component: ${component}</a>
+                        <a href="#" data-filter="${component}" class="filter-link" style="color:inherit">Component: ${component}</a>
                     </div>
                 </div>
             </div>
@@ -88,17 +102,45 @@ const streamFilter = document.getElementById("streamFilter");
 let latestEvents = [];
 let evtSource = null;
 let currentLimit = 100;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 function connectStream() {
     if (evtSource) evtSource.close();
     evtSource = new EventSource(`/events/stream?limit=${currentLimit}`);
+
+    evtSource.onopen = () => {
+        reconnectAttempts = 0;
+    };
+
     evtSource.onmessage = e => {
         latestEvents = JSON.parse(e.data);
         renderStream();
     };
+
+    evtSource.onerror = () => {
+        evtSource.close();
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            console.warn(`Stream connection lost. Reconnecting in ${delay/1000}s (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+            setTimeout(connectStream, delay);
+        } else {
+            console.error('Stream connection failed after max attempts');
+        }
+    };
 }
 
 connectStream();
+
+// Event-Delegation für Filter-Links (XSS-sicher)
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('filter-link')) {
+        e.preventDefault();
+        const filterValue = e.target.dataset.filter;
+        if (filterValue) applyFilter(filterValue);
+    }
+});
 
 document.getElementById("limitSelect").addEventListener("change", e => {
     currentLimit = parseInt(e.target.value);
@@ -148,18 +190,39 @@ async function doSearch(page = 1) {
     searchPage = page;
     const q = document.getElementById("searchInput").value || "";
     const url = `/events/search?q=${encodeURIComponent(q)}&page=${page}&page_size=${SEARCH_PAGE_SIZE}`;
-    const res = await fetch(url);
-    if (!res.ok) return;
+    const resultsContainer = document.getElementById("searchResults");
 
-    const data = await res.json();
-    const items = data.items || [];
-    document.getElementById("searchResults").innerHTML = "";
-    items.forEach(ev => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = createEventRowHtml(ev, true);
-        document.getElementById("searchResults").appendChild(tr);
-    });
-    renderSearchPagination(data.pages || 1);
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            resultsContainer.innerHTML = `<tr><td colspan="5" style="color: #e53935; text-align: center;">
+                Fehler beim Laden der Suchergebnisse (HTTP ${res.status})
+            </td></tr>`;
+            return;
+        }
+
+        const data = await res.json();
+        const items = data.items || [];
+        resultsContainer.innerHTML = "";
+
+        if (items.length === 0) {
+            resultsContainer.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--pico-muted-color);">
+                Keine Ergebnisse gefunden
+            </td></tr>`;
+        } else {
+            items.forEach(ev => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = createEventRowHtml(ev, true);
+                resultsContainer.appendChild(tr);
+            });
+        }
+        renderSearchPagination(data.pages || 1);
+    } catch (e) {
+        console.error("Search error:", e);
+        resultsContainer.innerHTML = `<tr><td colspan="5" style="color: #e53935; text-align: center;">
+            Netzwerkfehler - bitte Verbindung prüfen
+        </td></tr>`;
+    }
 }
 
 document.getElementById("searchBtn").onclick = () => doSearch(1);
@@ -219,10 +282,11 @@ function renderStatsUI(s) {
 
     const makeClickable = (list, color) => {
         if (list.size === 0) return '<span style="color: var(--pico-muted-color);">None</span>';
-        return Array.from(list).map(item => `
-            <a href="javascript:void(0)" onclick="event.stopPropagation(); applyFilter('${item}')" 
-               style="color: ${color}; text-decoration: underline; margin-right: 8px; font-weight: 500;">${item}</a>
-        `).join('');
+        return Array.from(list).map(item => {
+            const escaped = escapeHtml(item);
+            return `<a href="#" data-filter="${escaped}" class="filter-link stats-filter-link"
+               style="color: ${color}; text-decoration: underline; margin-right: 8px; font-weight: 500;">${escaped}</a>`;
+        }).join('');
     };
 
     container.innerHTML = `
