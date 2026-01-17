@@ -11,13 +11,15 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface K8sEventRepository extends JpaRepository<K8sEvent, Long> {
-    
+
     // Findet die letzten 100 Events
+    @Transactional(readOnly = true)
     List<K8sEvent> findTop100ByOrderByCreatedAtDesc();
 
     // Suche mit Like über mehrere Felder
+    @Transactional(readOnly = true)
     @Query("""
-    SELECT e FROM K8sEvent e WHERE 
+    SELECT e FROM K8sEvent e WHERE
         LOWER(e.message) LIKE LOWER(CONCAT('%', :q, '%')) OR
         LOWER(e.name) LIKE LOWER(CONCAT('%', :q, '%')) OR
         LOWER(e.involvedName) LIKE LOWER(CONCAT('%', :q, '%')) OR
@@ -33,5 +35,6 @@ public interface K8sEventRepository extends JpaRepository<K8sEvent, Long> {
     @Transactional
     int deleteByCreatedAtBefore(OffsetDateTime threshold);
 
+    @Transactional(readOnly = true)
     boolean existsByUidAndCount(String uid, Integer count);
 }
