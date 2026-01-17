@@ -21,6 +21,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -71,12 +73,27 @@ public class K8sWatcherService {
         factory.startAllRegisteredInformers();
     }
 
+    @PreDestroy
+    public void shutdown() {
+        log.info("[WATCH] Shutting down informer factory...");
+        if (factory != null) {
+            factory.stopAllRegisteredInformers();
+        }
+    }
+
     // ---------------------------------------------------------
     // EXISTING EVENTS IMPORT
     // ---------------------------------------------------------
     private void importExistingEvents(String namespace) {
         try {
-            CoreV1EventList list = eventApi.list(namespace).getObject();
+            var response = eventApi.list(namespace);
+            if (!response.isSuccess()) {
+                log.error("[WATCH] Failed to list events for '{}': {} - {}",
+                        namespace, response.getHttpStatusCode(), response.getStatus());
+                return;
+            }
+
+            CoreV1EventList list = response.getObject();
             if (list == null || list.getItems() == null) {
                 return;
             }
@@ -89,7 +106,7 @@ public class K8sWatcherService {
             }
 
         } catch (Exception e) {
-            log.error("[WATCH] Failed to import existing events for '{}': {}", namespace, e.getMessage());
+            log.error("[WATCH] Failed to import existing events for '{}'", namespace, e);
         }
     }
 
@@ -150,6 +167,8 @@ public class K8sWatcherService {
             String kind = rawEvent.getInvolvedObject().getKind();
             String name = rawEvent.getInvolvedObject().getName();
 
+            // ReplicaSet-Namen haben das Format: <deployment-name>-<replicaset-hash>
+            // Wir extrahieren den Deployment-Namen durch Entfernen des letzten Hash-Teils
             String deployment = null;
             if ("ReplicaSet".equals(kind) && name.contains("-")) {
                 deployment = name.substring(0, name.lastIndexOf("-"));
