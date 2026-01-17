@@ -41,7 +41,7 @@ LABEL org.opencontainers.image.title="KubeEvent Java" \
       org.opencontainers.image.description="Kubernetes Event Watcher and Dashboard" \
       org.opencontainers.image.version="0.0.1-SNAPSHOT" \
       org.opencontainers.image.vendor="wlanboy" \
-      org.opencontainers.image.source="https://github.com/example/kubeeventjava" \
+      org.opencontainers.image.source="https://github.com/wlanboy/kubeeventjava" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.base.name="eclipse-temurin:25-jre"
 
