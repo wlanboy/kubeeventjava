@@ -4,6 +4,7 @@ import java.io.File;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.kubernetes.client.spring.extended.controller.config.KubernetesReconcilerAutoConfiguration;
@@ -25,7 +26,10 @@ public class KubeeventApplication {
             }
         }
 
-        SpringApplication.run(KubeeventApplication.class, args);
+        //SpringApplication.run(KubeeventApplication.class, args);
+        SpringApplication app = new SpringApplication(KubeeventApplication.class);
+        app.setApplicationStartup(new BufferingApplicationStartup(2048));
+        app.run(args);
     }
 }
 
