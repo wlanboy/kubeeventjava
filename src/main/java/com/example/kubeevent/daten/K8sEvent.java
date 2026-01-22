@@ -10,11 +10,16 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "k8s_events", indexes = {
-    @Index(name = "ix_k8sevent_uid_count", columnList = "uid, count"),
-    @Index(name = "idx_namespace", columnList = "namespace"),
-    @Index(name = "idx_created_at", columnList = "created_at")
-})
+@Table(name = "k8s_events",
+    indexes = {
+        @Index(name = "ix_k8sevent_uid_count", columnList = "uid, count"),
+        @Index(name = "idx_namespace", columnList = "namespace"),
+        @Index(name = "idx_created_at", columnList = "created_at")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uc_uid_count", columnNames = {"uid", "count"})
+    }
+)
 @Getter
 @Setter
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
