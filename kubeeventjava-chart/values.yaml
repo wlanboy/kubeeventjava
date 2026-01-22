@@ -48,10 +48,10 @@ serviceAccount:
 
 watchNamespaces:
   - kubeeventjava
-  - simpleservice
+  - mirror
   - randomfail
 
 env:
   DB_PATH: "jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count"
-  POD_NAMESPACE: "kubeeventjava,simpleservice,randomfail"
+  POD_NAMESPACE: "kubeeventjava,mirror,randomfail"
 
