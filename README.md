@@ -1,50 +1,54 @@
 # Kubernetes Event Dashboard
 A lightweight, real‑time dashboard for collecting, storing, searching, and visualizing Kubernetes Events. This project provides:
 
-A FastAPI backend that watches Kubernetes events, stores them in a database, and exposes REST + SSE endpoints
-A minimal frontend for live event streaming, searching, filtering, and pagination
-Prometheus metrics for monitoring event activity
-A clean, self‑contained solution for debugging clusters and understanding workload behavior
+- A **Spring Boot** backend that watches Kubernetes events, stores them in a database, and exposes REST + SSE endpoints
+- A minimal frontend for live event streaming, searching, filtering, and pagination
+- Prometheus metrics for monitoring event activity
+- A clean, self‑contained solution for debugging clusters and understanding workload behavior
 
 ![K8s Events](screenshots/kubeevents.png)
+
 Java version of https://github.com/wlanboy/kubeevent
 
 ## Features
 ### Real‑time Event Stream
-- Uses Kubernetes’ watch API
+- Uses Kubernetes Informer API (SharedIndexInformer)
 - Streams events via Server‑Sent Events (SSE)
 - Client‑side filtering (type, reason, message, namespace, involved object)
+- Automatic deduplication via uid+count
 
 ### Prometheus Metrics
-Exposes /metrics with:
-- Events by type (Normal, Warning, Error)
-- Events by workernode, kubelet, scheduler, controller
+Exposes `/actuator/prometheus` with:
+- Events by type (Normal, Warning)
+- Events by component (kubelet, scheduler, controller)
 - Events by namespace, deployment, pod
+- Events by node/host
 
 ### Persistent Storage
-- Stores all events in a SQLModel/SQLite (or any SQLModel‑compatible DB)
-- Prevents event loss
+- Stores all events in H2 Database (JPA/Hibernate)
+- Automatic deduplication (unique constraint on uid+count)
+- Automatic retention: events older than 7 days are deleted
 - Allows historical search
 
 ## Architecture Overview
 ```
-+-------------------+        +---------------------+
-| Kubernetes API     | ----> | FastAPI Watcher     |
-| (Events)           |       | (k8s_watcher.py)    |
-+-------------------+        +---------------------+
++-------------------+        +-------------------------+
+| Kubernetes API    | -----> | Spring Boot Watcher     |
+| (Events)          |        | (K8sWatcherService.java)|
++-------------------+        +-------------------------+
                                     |
                                     v
                            +------------------+
-                           | SQLModel Storage |
+                           | H2 / JPA Storage |
                            +------------------+
                                     |
                                     v
-+-------------------+        +---------------------+
-| Frontend (HTML/JS)| <----> | FastAPI REST + SSE  |
-| Live Stream + UI  |        | /events/stream      |
-+-------------------+        | /events/search      |
-                             | /metrics            |
-                             +---------------------+
++-------------------+        +-------------------------+
+| Frontend (HTML/JS)| <----> | Spring Boot REST + SSE  |
+| Live Stream + UI  |        | /events/stream          |
++-------------------+        | /events/search          |
+                             | /actuator/prometheus    |
+                             +-------------------------+
 ```
 
 ## Start service
