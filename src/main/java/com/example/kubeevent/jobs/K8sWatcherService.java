@@ -22,6 +22,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PreDestroy;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 @Slf4j
@@ -113,11 +115,13 @@ public class K8sWatcherService {
     // ---------------------------------------------------------
     // LIVE WATCHER
     // ---------------------------------------------------------
+    private static final long RESYNC_PERIOD_MS = 3600000L; // 1 Stunde
+
     private void startInformer(String namespace) {
         SharedIndexInformer<CoreV1Event> informer = factory.sharedIndexInformerFor(
                 eventApi,
                 CoreV1Event.class,
-                0L,
+                RESYNC_PERIOD_MS,
                 namespace);
 
         informer.addEventHandler(new ResourceEventHandler<CoreV1Event>() {
@@ -149,12 +153,13 @@ public class K8sWatcherService {
     // ---------------------------------------------------------
     // EVENT PROCESSING
     // ---------------------------------------------------------
-    private void processIncomingEvent(CoreV1Event rawEvent) {
+    @Transactional
+    protected void processIncomingEvent(CoreV1Event rawEvent) {
         try {
             String uid = rawEvent.getMetadata().getUid();
             Integer count = safeCount(rawEvent);
 
-            // Doppelte Events vermeiden
+            // Doppelte Events vermeiden (erste Prüfung - schneller Check)
             if (repository.existsByUidAndCount(uid, count)) {
                 return;
             }
@@ -164,17 +169,20 @@ public class K8sWatcherService {
             String reason = rawEvent.getReason();
             String message = rawEvent.getMessage();
 
-            String kind = rawEvent.getInvolvedObject().getKind();
-            String name = rawEvent.getInvolvedObject().getName();
+            // Null-Check für involvedObject
+            String kind = rawEvent.getInvolvedObject() != null
+                    ? rawEvent.getInvolvedObject().getKind() : "unknown";
+            String name = rawEvent.getInvolvedObject() != null
+                    ? rawEvent.getInvolvedObject().getName() : "unknown";
 
             // ReplicaSet-Namen haben das Format: <deployment-name>-<replicaset-hash>
             // Wir extrahieren den Deployment-Namen durch Entfernen des letzten Hash-Teils
             String deployment = null;
-            if ("ReplicaSet".equals(kind) && name.contains("-")) {
+            if ("ReplicaSet".equals(kind) && name != null && name.contains("-")) {
                 deployment = name.substring(0, name.lastIndexOf("-"));
             }
 
-            String component = rawEvent.getSource() != null ? rawEvent.getSource().getComponent() : "unknown"; 
+            String component = rawEvent.getSource() != null ? rawEvent.getSource().getComponent() : "unknown";
             String host = rawEvent.getSource() != null && rawEvent.getSource().getHost() != null
                         ? rawEvent.getSource().getHost()
                         : "unknown";
@@ -189,7 +197,7 @@ public class K8sWatcherService {
                     .message(message)
                     .involvedKind(kind)
                     .involvedName(name)
-                    .sourceComponent(component) 
+                    .sourceComponent(component)
                     .sourceHost(host)
                     .count(count)
                     .firstTimestamp(rawEvent.getFirstTimestamp())
@@ -198,11 +206,13 @@ public class K8sWatcherService {
 
             repository.save(entity);
 
-            metricsService.incrementEventFull( namespace, type, kind, name, reason, component, host, deployment );
+            metricsService.incrementEventFull(namespace, type, kind, name, reason, component, host, deployment);
 
+        } catch (DataIntegrityViolationException e) {
+            // Race Condition: Event wurde bereits von anderem Thread gespeichert - ignorieren
+            log.debug("[WATCH] Duplicate event ignored (uid+count already exists)");
         } catch (Exception e) {
-            log.error("[WATCH] Error saving event: {}", e);
-            try { log.error("[WATCH] Failed event details: {}", rawEvent); } catch (Exception ignored) {}
+            log.error("[WATCH] Error saving event", e);
             metricsService.incrementError();
         }
     }
