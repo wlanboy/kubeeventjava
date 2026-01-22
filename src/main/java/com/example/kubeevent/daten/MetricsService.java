@@ -47,38 +47,37 @@ public class MetricsService {
                                 .register(registry)
                                 .increment();
 
-                // 5) Involved Object
+                // 5) Involved Object (ohne involved_name wegen Kardinalitäts-Explosion)
                 Counter.builder("kubeevents_involved_total")
                                 .tag("namespace", safe(namespace))
                                 .tag("type", safe(type))
                                 .tag("kind", safe(kind))
-                                .tag("involved_name", safe(name))
                                 .tag("reason", safe(reason))
                                 .tag("component", safe(component))
                                 .register(registry)
                                 .increment();
 
-                // 6) Component
-                if ("component" != null) {
+                // 6) Component (nur wenn vorhanden)
+                if (component != null && !"unknown".equals(component)) {
                         Counter.builder("kubeevents_component_total")
-                                        .tag("component", safe(component))
+                                        .tag("component", component)
                                         .register(registry)
                                         .increment();
                 }
 
-                // 7) Node/Host
-                if ("deployment" != null) {
+                // 7) Node/Host (nur wenn vorhanden)
+                if (host != null && !"unknown".equals(host)) {
                         Counter.builder("kubeevents_node_total")
-                                        .tag("host", safe(host))
+                                        .tag("host", host)
                                         .register(registry)
                                         .increment();
                 }
 
-                // 8) Deployment
-                if ("deployment" != null) {
+                // 8) Deployment (nur wenn vorhanden)
+                if (deployment != null && !deployment.isBlank()) {
                         Counter.builder("kubeevents_deployment_total")
                                         .tag("namespace", safe(namespace))
-                                        .tag("deployment", safe(deployment))
+                                        .tag("deployment", deployment)
                                         .tag("type", safe(type))
                                         .register(registry)
                                         .increment();
