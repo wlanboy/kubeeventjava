@@ -76,11 +76,15 @@ helm install kubeevent . -n kubeevent --create-namespace
 
 cd ..
 
-POD=$(kubectl get pod -n kubeeventjava -l app=kubeeventjava -o jsonpath='{.items[0].metadata.name}')
-
 curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
 
+POD=$(kubectl get pod -n kubeeventjava -l app=kubeeventjava -o jsonpath='{.items[0].metadata.name}')
+
 mirrord exec -t pod/$POD -n kubeeventjava -- mvn spring-boot:run
+
+# or
+
+mirrord exec -t deployment/kubeeventjava -n kubeeventjava -- mvn spring-boot:run
 ```
 
 ## Create Events
