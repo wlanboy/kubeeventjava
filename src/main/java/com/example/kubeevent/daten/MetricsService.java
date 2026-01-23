@@ -54,6 +54,15 @@ public class MetricsService {
                                 .tag("kind", safe(kind))
                                 .tag("reason", safe(reason))
                                 .tag("component", safe(component))
+                                .tag("host", safe(host))
+                                .register(registry)
+                                .increment();
+
+                // 5b) Reason als dedizierte Metrik für einfaches Alerting
+                Counter.builder("kubeevents_reason_total")
+                                .tag("namespace", safe(namespace))
+                                .tag("reason", safe(reason))
+                                .tag("type", safe(type))
                                 .register(registry)
                                 .increment();
 
@@ -89,6 +98,56 @@ public class MetricsService {
                                         .tag("namespace", safe(namespace))
                                         .tag("pod", safe(name))
                                         .tag("type", safe(type))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 10) ReplicaSet
+                if ("ReplicaSet".equals(kind)) {
+                        Counter.builder("kubeevents_replicaset_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("replicaset", safe(name))
+                                        .tag("type", safe(type))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 11) StatefulSet
+                if ("StatefulSet".equals(kind)) {
+                        Counter.builder("kubeevents_statefulset_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("statefulset", safe(name))
+                                        .tag("type", safe(type))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 12) DaemonSet
+                if ("DaemonSet".equals(kind)) {
+                        Counter.builder("kubeevents_daemonset_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("daemonset", safe(name))
+                                        .tag("type", safe(type))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 13) PersistentVolumeClaim (Storage-Probleme)
+                if ("PersistentVolumeClaim".equals(kind)) {
+                        Counter.builder("kubeevents_pvc_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("pvc", safe(name))
+                                        .tag("type", safe(type))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 14) Node (Cluster-Health)
+                if ("Node".equals(kind)) {
+                        Counter.builder("kubeevents_node_events_total")
+                                        .tag("node", safe(name))
+                                        .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
                                         .register(registry)
                                         .increment();
                 }
