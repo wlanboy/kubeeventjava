@@ -1,0 +1,192 @@
+{
+  "title": "Storage Detail (PVC)",
+  "uid": "kube-storage-detail",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Namespace",
+        "query": "label_values(kubeevents_pvc_total, namespace)",
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "pvc",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "PVC",
+        "query": "label_values(kubeevents_pvc_total{namespace=~\"$namespace\"}, pvc)",
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "type": "stat",
+      "title": "Total PVC Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\"})"
+        }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Warning Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\", type=\"Warning\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" }
+        }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "PVC Events per Second",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\"}[5m])",
+          "legendFormat": "{{namespace}} / {{pvc}} ({{type}})"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "PVC Events by Type (Normal vs Warning)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\"}[5m]))",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Storage Event Reasons (Critical)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (reason, namespace) (rate(kubeevents_involved_total{namespace=~\"$namespace\", kind=\"PersistentVolumeClaim\"}[5m]))",
+          "legendFormat": "{{namespace}} / {{reason}}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Mount/Attach Failures",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_involved_total{namespace=~\"$namespace\", kind=\"PersistentVolumeClaim\", reason=~\"FailedMount|FailedAttachVolume|FailedMapVolume\"}[5m])",
+          "legendFormat": "{{namespace}} / {{reason}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Provisioning Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_involved_total{namespace=~\"$namespace\", kind=\"PersistentVolumeClaim\", reason=~\"Provisioning|ProvisioningSucceeded|ProvisioningFailed|ExternalProvisioning\"}[5m])",
+          "legendFormat": "{{namespace}} / {{reason}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "PVC Events by Namespace",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 27, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate(kubeevents_pvc_total{namespace=~\"$namespace\"}[5m]))",
+          "legendFormat": "{{namespace}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Top PVCs by Event Count (5m)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 34, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (namespace, pvc) (increase(kubeevents_pvc_total{namespace=~\"$namespace\"}[5m])))",
+          "legendFormat": "{{namespace}} / {{pvc}}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Warning PVC Events Detail",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 41, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\", type=\"Warning\"}[5m])",
+          "legendFormat": "{{namespace}} / {{pvc}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Spike Detection (PVC Events)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "idelta(kubeevents_pvc_total{namespace=~\"$namespace\", pvc=~\"$pvc\"}[5m])",
+          "legendFormat": "{{namespace}} / {{pvc}}"
+        }
+      ]
+    }
+  ]
+}

@@ -60,17 +60,13 @@
 
     {
       "type": "timeseries",
-      "title": "ReplicaSet & Scaling Events",
+      "title": "ReplicaSet Events",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"ReplicaSet\", reason=\"SuccessfulCreate\"}[5m])",
-          "legendFormat": "ReplicaSet SuccessfulCreate"
-        },
-        {
-          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"Deployment\", involved_name=\"$deployment\", reason=\"ScalingReplicaSet\"}[5m])",
-          "legendFormat": "ScalingReplicaSet"
+          "expr": "rate(kubeevents_replicaset_total{namespace=\"$namespace\", replicaset=~\"$deployment.*\"}[5m])",
+          "legendFormat": "{{replicaset}} ({{type}})"
         }
       ]
     },
@@ -108,7 +104,7 @@
       "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_node_total{namespace=\"$namespace\"}[5m])",
+          "expr": "sum by (host) (rate(kubeevents_involved_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{host}}"
         }
       ]
@@ -121,10 +117,26 @@
       "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_component_total{namespace=\"$namespace\"}[5m])",
+          "expr": "sum by (component) (rate(kubeevents_involved_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{component}}"
         }
       ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Reason (Deployment)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total{namespace=\"$namespace\"}[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
     }
   ]
 }

@@ -117,6 +117,58 @@
           "legendFormat": "{{namespace}} / {{pod}}"
         }
       ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events per ReplicaSet (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_replicaset_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])",
+          "legendFormat": "{{namespace}} / {{replicaset}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events per StatefulSet (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 49, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_statefulset_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])",
+          "legendFormat": "{{namespace}} / {{statefulset}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events per DaemonSet (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 56, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_daemonset_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])",
+          "legendFormat": "{{namespace}} / {{daemonset}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Storage Events (PVC) (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 63, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pvc_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])",
+          "legendFormat": "{{namespace}} / {{pvc}} / {{type}}"
+        }
+      ]
     }
   ]
 }

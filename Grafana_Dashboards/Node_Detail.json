@@ -3,7 +3,7 @@
   "uid": "kube-node-detail",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
 
   "templating": {
@@ -53,12 +53,28 @@
 
     {
       "type": "timeseries",
-      "title": "Events by Component (kubelet / scheduler / controllers)",
+      "title": "Node Object Events (Cluster Health)",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_component_total{host=\"$host\"}[5m])",
+          "expr": "rate(kubeevents_node_events_total{node=\"$host\"}[5m])",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Component on Node",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (component) (rate(kubeevents_involved_total{host=\"$host\"}[5m]))",
           "legendFormat": "{{component}}"
         }
       ]
@@ -66,52 +82,42 @@
 
     {
       "type": "timeseries",
-      "title": "Pod Events on Node",
-      "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
-      "targets": [
-        {
-          "expr": "rate(kubeevents_pod_total{host=\"$host\"}[5m])",
-          "legendFormat": "{{namespace}} / {{pod}} / {{type}}"
-        }
-      ]
-    },
-
-    {
-      "type": "timeseries",
-      "title": "CrashLoop / BackOff (Pods on Node)",
+      "title": "Events by Kind on Node",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{host=\"$host\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
-          "legendFormat": "{{pod}} / {{reason}}"
+          "expr": "sum by (kind, type) (rate(kubeevents_involved_total{host=\"$host\"}[5m]))",
+          "legendFormat": "{{kind}} ({{type}})"
         }
       ]
     },
 
     {
       "type": "timeseries",
-      "title": "Scheduling Failures (Pods on Node)",
+      "title": "Events by Reason on Node",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{host=\"$host\", reason=\"FailedScheduling\"}[5m])",
-          "legendFormat": "{{pod}}"
+          "expr": "topk(10, sum by (reason, type) (rate(kubeevents_involved_total{host=\"$host\"}[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
         }
-      ]
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
     },
 
     {
       "type": "timeseries",
-      "title": "Deployment Events (Pods on Node)",
+      "title": "Warning Events on Node",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_deployment_total{host=\"$host\"}[5m])",
-          "legendFormat": "{{namespace}} / {{deployment}} / {{type}}"
+          "expr": "sum by (kind, reason) (rate(kubeevents_involved_total{host=\"$host\", type=\"Warning\"}[5m]))",
+          "legendFormat": "{{kind}} / {{reason}}"
         }
       ]
     },

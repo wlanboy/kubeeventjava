@@ -77,12 +77,28 @@
 
     {
       "type": "timeseries",
-      "title": "Events by Node (Host)",
+      "title": "Top Event Reasons in Namespace",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_node_total{namespace=\"$namespace\"}[5m])",
+          "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total{namespace=\"$namespace\"}[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Node (Host)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\"}[5m])",
           "legendFormat": "{{host}}"
         }
       ]
@@ -92,10 +108,10 @@
       "type": "timeseries",
       "title": "Events by Component (kubelet / scheduler / controllers)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_component_total{namespace=\"$namespace\"}[5m])",
+          "expr": "sum by (component) (rate(kubeevents_involved_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{component}}"
         }
       ]
@@ -105,7 +121,7 @@
       "type": "timeseries",
       "title": "Pod CrashLoop / BackOff (Namespace)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
@@ -118,7 +134,7 @@
       "type": "timeseries",
       "title": "Pod Scheduling Failures (FailedScheduling)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", reason=\"FailedScheduling\"}[5m])",
@@ -129,9 +145,22 @@
 
     {
       "type": "timeseries",
+      "title": "Storage Events (PVC)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_pvc_total{namespace=\"$namespace\"}[5m])",
+          "legendFormat": "{{pvc}} ({{type}})"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
       "title": "Deployment Errors in Namespace",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 54, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "increase(kubeevents_deployment_total{namespace=\"$namespace\", type=\"Warning\"}[5m])",

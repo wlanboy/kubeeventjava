@@ -120,9 +120,41 @@
 
     {
       "type": "timeseries",
-      "title": "Events by Component (kubelet / scheduler / controllers)",
+      "title": "Top Event Reasons",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Warning Reasons (Critical for Alerting)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (reason, namespace) (rate(kubeevents_reason_total{type=\"Warning\", namespace=~\"$namespace\"}[5m]))",
+          "legendFormat": "{{namespace}} / {{reason}}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Component (kubelet / scheduler / controllers)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_component_total[5m])",
@@ -138,7 +170,7 @@
       "type": "timeseries",
       "title": "Events by Node (Host)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_node_total[5m])",
@@ -154,7 +186,7 @@
       "type": "timeseries",
       "title": "Events by Deployment",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 54, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_deployment_total[5m])",
