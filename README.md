@@ -57,16 +57,34 @@ mkdir data
 mvn spring-boot:run
 ```
 
-## Docker build and run
+## Docker build
+
 ```bash
 docker build -t kubeevent:latest .
+docker build -f Dockerfile25Jlink -t kubeevent:jlink .
 
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "kubeevent"
+kubeevent    jlink     523MB
+kubeevent    latest    864MB
+```
+
+## Docker run
+
+```bash
 docker run --rm --name kubeeventjava \
   -p 8080:8080 \
   -v $(pwd)/data:/app/data \
   -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
   -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
   kubeevent:latest
+
+
+docker run --rm --name kubeeventjava \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
+  -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
+  kubeevent:jlink
 ```
 
 ## Run service in cluster
