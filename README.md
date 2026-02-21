@@ -1,4 +1,5 @@
 # Kubernetes Event Dashboard
+
 A lightweight, real‑time dashboard for collecting, storing, searching, and visualizing Kubernetes Events. This project provides:
 
 - A **Spring Boot** backend that watches Kubernetes events, stores them in a database, and exposes REST + SSE endpoints
@@ -11,13 +12,16 @@ A lightweight, real‑time dashboard for collecting, storing, searching, and vis
 Java version of https://github.com/wlanboy/kubeevent
 
 ## Features
+
 ### Real‑time Event Stream
+
 - Uses Kubernetes Informer API (SharedIndexInformer)
 - Streams events via Server‑Sent Events (SSE)
 - Client‑side filtering (type, reason, message, namespace, involved object)
 - Automatic deduplication via uid+count
 
 ### Prometheus Metrics
+
 Exposes `/actuator/prometheus` with:
 - Events by type (Normal, Warning)
 - Events by component (kubelet, scheduler, controller)
@@ -25,13 +29,15 @@ Exposes `/actuator/prometheus` with:
 - Events by node/host
 
 ### Persistent Storage
+
 - Stores all events in H2 Database (JPA/Hibernate)
 - Automatic deduplication (unique constraint on uid+count)
 - Automatic retention: events older than 7 days are deleted
 - Allows historical search
 
 ## Architecture Overview
-```
+
+```txt
 +-------------------+        +-------------------------+
 | Kubernetes API    | -----> | Spring Boot Watcher     |
 | (Events)          |        | (K8sWatcherService.java)|
@@ -52,6 +58,7 @@ Exposes `/actuator/prometheus` with:
 ```
 
 ## Start service
+
 ```bash
 mkdir data
 mvn spring-boot:run
@@ -64,8 +71,8 @@ docker build -t kubeevent:latest .
 docker build -f Dockerfile25Jlink -t kubeevent:jlink .
 
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "kubeevent"
-kubeevent    jlink     523MB
-kubeevent    latest    864MB
+kubeevent    jlink     235MB
+kubeevent    latest    571MB
 ```
 
 ## Docker run
@@ -88,6 +95,7 @@ docker run --rm --name kubeeventjava \
 ```
 
 ## Run service in cluster
+
 ```bash
 cd kubeevent-chart
 helm install kubeevent . -n kubeevent --create-namespace
