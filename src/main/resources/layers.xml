@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layers xmlns="http://www.springframework.org/schema/boot/layers"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.springframework.org/schema/boot/layers
+                            https://www.springframework.org/schema/boot/layers/layers-3.0.xsd">
+    <application>
+        <!-- Spring Boot Launcher separat – ändert sich nur bei Spring Boot Version-Update -->
+        <into layer="spring-boot-loader">
+            <include>org/springframework/boot/loader/**</include>
+        </into>
+
+        <!-- Ressourcen getrennt vom Kompilat.
+             Konfigurationsänderungen invalidieren nicht den Class-Layer.
+             Kein Thymeleaf in diesem Projekt → kein templates/**. -->
+        <into layer="application-resources">
+            <include>BOOT-INF/classes/**/*.yml</include>
+            <include>BOOT-INF/classes/**/*.yaml</include>
+            <include>BOOT-INF/classes/**/*.properties</include>
+            <include>BOOT-INF/classes/**/*.xml</include>
+        </into>
+
+        <!-- Kompilierter Code + AOT-Metadaten – ändert sich am häufigsten -->
+        <into layer="application" />
+    </application>
+
+    <dependencies>
+        <!-- SNAPSHOT-Dependencies getrennt -->
+        <into layer="snapshot-dependencies">
+            <include>*:*:*SNAPSHOT</include>
+        </into>
+
+        <!-- Observability-Stack: Micrometer/Prometheus ist im Projekt vorhanden -->
+        <into layer="observability-dependencies">
+            <include>io.micrometer:*</include>
+            <include>io.prometheus:*</include>
+        </into>
+
+        <!-- Alle übrigen stabilen Release-Bibliotheken -->
+        <into layer="dependencies" />
+    </dependencies>
+
+    <!-- Reihenfolge: stabilste Layer zuerst → bestes Docker-Cache-Verhalten -->
+    <layerOrder>
+        <layer>dependencies</layer>
+        <layer>observability-dependencies</layer>
+        <layer>spring-boot-loader</layer>
+        <layer>snapshot-dependencies</layer>
+        <layer>application-resources</layer>
+        <layer>application</layer>
+    </layerOrder>
+</layers>

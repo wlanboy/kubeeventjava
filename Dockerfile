@@ -64,16 +64,22 @@ USER 185
 # → Zurück zum nicht-privilegierten User.
 
 COPY --from=build --chown=185:185 /app/extracted/dependencies/ ./
-# → Kopiert nur die Dependency-Layer. Ändern sich selten.
+# → Stabile Spring/Tomcat/Reactor Libs – ändert sich selten.
+
+COPY --from=build --chown=185:185 /app/extracted/observability-dependencies/ ./
+# → Micrometer/Prometheus – eigener Release-Zyklus.
 
 COPY --from=build --chown=185:185 /app/extracted/spring-boot-loader/ ./
-# → Enthält den Spring Boot Launcher (Main-Class Loader). Ändern sich selten.
+# → Spring Boot Launcher – ändert sich nur bei Spring Boot Upgrade.
 
 COPY --from=build --chown=185:185 /app/extracted/snapshot-dependencies/ ./
-# → Snapshot-Dependencies (z. B. lokale libs), ändern sich häufiger.
+# → SNAPSHOT-Abhängigkeiten – ändern sich häufiger.
+
+COPY --from=build --chown=185:185 /app/extracted/application-resources/ ./
+# → Config-Dateien (properties, yml) – invalidiert nicht den Class-Layer.
 
 COPY --from=build --chown=185:185 /app/extracted/application/ ./
-# → Der eigentliche Applikationscode (Kompilat). Ändert sich.
+# → Kompilierter Code + AOT-Metadaten – ändert sich am häufigsten.
 
 COPY --chown=185:185 containerconfig/application.properties /app/config/application.properties
 # → Externe Konfiguration ins Config-Verzeichnis für die Referenz für ENV Vars

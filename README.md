@@ -71,8 +71,10 @@ docker build -t kubeevent:latest .
 docker build -f Dockerfile25Jlink -t kubeevent:jlink .
 
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "kubeevent"
-kubeevent    jlink     235MB
-kubeevent    latest    571MB
+kubeevent    jlink     410MB
+kubeevent    latest    864MB
+
+docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive kubeevent:jlink
 ```
 
 ## Docker run
