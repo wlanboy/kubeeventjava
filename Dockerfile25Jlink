@@ -112,7 +112,6 @@ COPY --chown=65532:65532 containerconfig/application.properties /app/config/appl
 
 EXPOSE 8080
 
-#ENTRYPOINT ["/app/entrypoint.sh"]
 ENTRYPOINT [ \
     "/opt/jre/bin/java", \
     "-XX:SharedArchiveFile=/app/app.jsa", \
