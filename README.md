@@ -23,6 +23,7 @@ Java version of https://github.com/wlanboy/kubeevent
 ### Prometheus Metrics
 
 Exposes `/actuator/prometheus` with:
+
 - Events by type (Normal, Warning)
 - Events by component (kubelet, scheduler, controller)
 - Events by namespace, deployment, pod
@@ -116,6 +117,7 @@ mirrord exec -t deployment/kubeeventjava -n kubeeventjava -- mvn spring-boot:run
 ```
 
 ## Create Events
+
 ```bash
 kubectl create deployment demoapp -n kubeeventjava --image=nginx
 kubectl scale deployment demoapp -n kubeeventjava --replicas=2
