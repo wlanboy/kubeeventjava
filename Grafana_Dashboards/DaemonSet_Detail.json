@@ -28,6 +28,16 @@
         "datasource": "$datasource",
         "label": "DaemonSet",
         "query": "label_values(kubeevents_daemonset_total{namespace=\"$namespace\"}, daemonset)"
+      },
+      {
+        "name": "reason",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Reason",
+        "query": "label_values(kubeevents_daemonset_total{namespace=\"$namespace\", daemonset=\"$daemonset\"}, reason)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
       }
     ]
   },
@@ -96,7 +106,7 @@
       "gridPos": { "x": 12, "y": 6, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "sum by (reason, type) (rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"DaemonSet\"}[5m]))",
+          "expr": "sum by (reason, type) (rate(kubeevents_daemonset_total{namespace=\"$namespace\", daemonset=\"$daemonset\"}[5m]))",
           "legendFormat": "{{reason}} ({{type}})"
         }
       ],
@@ -106,10 +116,31 @@
     },
 
     {
+      "type": "table",
+      "title": "Reason Breakdown",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sort_desc(sum by (reason, type) (increase(kubeevents_daemonset_total{namespace=\"$namespace\", daemonset=\"$daemonset\"}[30m])))",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "options": {
+        "sortBy": [{ "displayName": "Value", "desc": true }]
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "mode": "columns" } },
+        { "id": "organize", "options": { "renameByName": { "Value": "Count" } } }
+      ]
+    },
+
+    {
       "type": "timeseries",
       "title": "Pod Events (DaemonSet Pods)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 7 },
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 7 },
       "targets": [
         {
           "expr": "rate(kubeevents_pod_total{namespace=\"$namespace\", pod=~\"$daemonset.*\"}[5m])",
