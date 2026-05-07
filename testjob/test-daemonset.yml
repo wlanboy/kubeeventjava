@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-daemonset
+  namespace: kubeeventjava
+  labels:
+    app: test-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: test-daemonset
+  template:
+    metadata:
+      labels:
+        app: test-daemonset
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: test
+          image: busybox:1.36
+          command: ["sh", "-c", "while true; do echo 'daemonset running'; sleep 30; done"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"

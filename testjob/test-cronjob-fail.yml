@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: test-cronjob-fail
+  namespace: kubeeventjava
+  labels:
+    app: test-cronjob-fail
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: test-cronjob-fail
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: test
+              image: busybox:1.36
+              command: ["sh", "-c", "echo 'failing intentionally'; exit 1"]
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "50m"
+                  memory: "32Mi"

@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: test-statefulset
+  namespace: kubeeventjava
+  labels:
+    app: test-statefulset
+spec:
+  serviceName: test-statefulset
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-statefulset
+  template:
+    metadata:
+      labels:
+        app: test-statefulset
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: test
+          image: busybox:1.36
+          command: ["sh", "-c", "while true; do echo 'statefulset running'; sleep 30; done"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"

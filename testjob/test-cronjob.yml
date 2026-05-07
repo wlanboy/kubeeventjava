@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: test-cronjob
+  namespace: kubeeventjava
+  labels:
+    app: test-cronjob
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: test-cronjob
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: test
+              image: busybox:1.36
+              command: ["sh", "-c", "echo 'cronjob executed at' $(date); sleep 5"]
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "50m"
+                  memory: "32Mi"
