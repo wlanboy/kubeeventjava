@@ -3,8 +3,9 @@
   "uid": "kube-workload-analysis",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
 
   "templating": {
     "list": [
@@ -167,6 +168,45 @@
         {
           "expr": "increase(kubeevents_pvc_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])",
           "legendFormat": "{{namespace}} / {{pvc}} / {{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "CrashLoopBackOff per Namespace (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 70, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_crashloopbackoff_total{namespace=~\"$namespace\"}[5m])",
+          "legendFormat": "{{namespace}} / {{kind}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Unhealthy (Probe Failures) per Namespace (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 77, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_unhealthy_total{namespace=~\"$namespace\"}[5m])",
+          "legendFormat": "{{namespace}} / {{kind}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Failed Events per Namespace (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 84, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_failed_total{namespace=~\"$namespace\"}[5m])",
+          "legendFormat": "{{namespace}} / {{kind}}"
         }
       ]
     }

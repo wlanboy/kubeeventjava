@@ -3,8 +3,9 @@
   "uid": "kube-events-main",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
 
   "templating": {
     "list": [
@@ -197,10 +198,87 @@
     },
 
     {
+      "type": "stat",
+      "title": "CrashLoopBackOff",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 29, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_crashloopbackoff_total)", "legendFormat": "CrashLoopBackOff" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Unhealthy",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 29, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_unhealthy_total)", "legendFormat": "Unhealthy" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Failed Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 29, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_failed_total)", "legendFormat": "Failed" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Evicted",
+      "datasource": "$datasource",
+      "gridPos": { "x": 18, "y": 29, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_evicted_total)", "legendFormat": "Evicted" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
       "type": "timeseries",
       "title": "Top Event Reasons",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 33, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total{namespace=~\"$namespace\", type=~\"$type\"}[5m])))",
@@ -216,7 +294,7 @@
       "type": "timeseries",
       "title": "Warning Reasons (Critical for Alerting)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 39, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "sum by (reason, namespace) (rate(kubeevents_reason_total{type=\"Warning\", namespace=~\"$namespace\"}[5m]))",
@@ -232,7 +310,7 @@
       "type": "timeseries",
       "title": "Events by Component (kubelet / scheduler / controllers)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 45, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_component_total[5m])",
@@ -248,7 +326,7 @@
       "type": "timeseries",
       "title": "Events by Node (Host)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 51, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_node_total[5m])",
@@ -264,7 +342,7 @@
       "type": "timeseries",
       "title": "Events by Deployment",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 54, "w": 24, "h": 6 },
+      "gridPos": { "x": 0, "y": 57, "w": 24, "h": 6 },
       "targets": [
         {
           "expr": "rate(kubeevents_deployment_total[5m])",

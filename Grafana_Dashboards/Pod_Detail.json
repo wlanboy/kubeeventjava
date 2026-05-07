@@ -3,8 +3,9 @@
   "uid": "kube-pod-detail",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
 
   "templating": {
     "list": [
@@ -134,6 +135,64 @@
           "legendFormat": "Spike"
         }
       ]
+    },
+
+    {
+      "type": "stat",
+      "title": "CrashLoopBackOff (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_crashloopbackoff_total{namespace=\"$namespace\"})", "legendFormat": "CrashLoopBackOff" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Unhealthy (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 8, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_unhealthy_total{namespace=\"$namespace\"})", "legendFormat": "Unhealthy" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Failed (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 16, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_failed_total{namespace=\"$namespace\"})", "legendFormat": "Failed" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
     }
   ]
 }

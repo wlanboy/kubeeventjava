@@ -3,8 +3,9 @@
   "uid": "kube-namespace-detail",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
 
   "templating": {
     "list": [
@@ -167,6 +168,83 @@
           "legendFormat": "{{deployment}} / Warning"
         }
       ]
+    },
+
+    {
+      "type": "stat",
+      "title": "CrashLoopBackOff",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 60, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_crashloopbackoff_total{namespace=\"$namespace\"})", "legendFormat": "CrashLoopBackOff" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Unhealthy",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 60, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_unhealthy_total{namespace=\"$namespace\"})", "legendFormat": "Unhealthy" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Failed Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 60, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_failed_total{namespace=\"$namespace\"})", "legendFormat": "Failed" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Evicted",
+      "datasource": "$datasource",
+      "gridPos": { "x": 18, "y": 60, "w": 6, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_evicted_total{namespace=\"$namespace\"})", "legendFormat": "Evicted" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
     }
   ]
 }

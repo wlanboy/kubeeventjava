@@ -3,8 +3,9 @@
   "uid": "kube-deployment-detail",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
 
   "templating": {
     "list": [
@@ -131,6 +132,80 @@
       "targets": [
         {
           "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total{namespace=\"$namespace\"}[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "CrashLoopBackOff (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_crashloopbackoff_total{namespace=\"$namespace\"})", "legendFormat": "CrashLoopBackOff" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Unhealthy (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 8, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_unhealthy_total{namespace=\"$namespace\"})", "legendFormat": "Unhealthy" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Failed (Namespace)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 16, "y": 42, "w": 8, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_failed_total{namespace=\"$namespace\"})", "legendFormat": "Failed" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Direkte Deployment-Events (Rollout / Scaling)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 45, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_deployment_events_total{namespace=\"$namespace\", deployment=\"$deployment\"}[5m])",
           "legendFormat": "{{reason}} ({{type}})"
         }
       ],
