@@ -1,0 +1,1 @@
+scp *.json gmk:/mnt/sata/monitoring/grafana/provisioning/dashboards/events
