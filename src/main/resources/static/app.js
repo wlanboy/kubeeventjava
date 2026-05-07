@@ -265,7 +265,8 @@ async function updateStats() {
             const labels = Object.fromEntries(labelStr.split(',').map(s => s.split('=').map(v => v.replace(/"/g, ''))));
             const isBad = labels.type === 'Warning' || labels.type === 'Error';
 
-            if (name === 'kubeevents_namespace_total') { stats.namespaces.add(labels.namespace); if (isBad) stats.badNamespaces.add(labels.namespace); }
+            if (name === 'kubeevents_namespace_total') { stats.namespaces.add(labels.namespace); }
+            if (name === 'kubeevents_namespace_type_total') { if (isBad) stats.badNamespaces.add(labels.namespace); }
             if (name === 'kubeevents_deployment_total') { stats.deployments.add(labels.deployment); if (isBad) stats.badDeployments.add(labels.deployment); }
             if (name === 'kubeevents_pod_total') { stats.pods.add(labels.pod); if (isBad) stats.badPods.add(labels.pod); }
         });
