@@ -1,0 +1,188 @@
+{
+  "title": "Watcher Health",
+  "uid": "kube-watcher-health",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource"
+      }
+    ]
+  },
+
+  "panels": [
+
+    {
+      "type": "stat",
+      "title": "Total Events processed",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "kubeevents_total" }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Watch Errors",
+      "datasource": "$datasource",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "kubeevents_watch_errors_total" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "Watcher Restarts",
+      "datasource": "$datasource",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        { "expr": "kubeevents_watch_restarts_total" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Event Throughput (Events/s)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_total[5m])",
+          "legendFormat": "Events/s"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Watch Errors over Time",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_watch_errors_total[5m])",
+          "legendFormat": "Errors (5m)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Watcher Restarts over Time",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_watch_restarts_total[5m])",
+          "legendFormat": "Restarts (5m)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" }
+        }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Type (Normal vs Warning)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 11, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_type_total[5m])",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Component",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 11, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_component_total[5m])",
+          "legendFormat": "{{component}}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Events by Namespace (Rate)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "rate(kubeevents_namespace_total[5m])",
+          "legendFormat": "{{namespace}}"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Top Reasons cluster-wide (5m)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (reason, type) (rate(kubeevents_reason_total[5m])))",
+          "legendFormat": "{{reason}} ({{type}})"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    }
+  ]
+}
