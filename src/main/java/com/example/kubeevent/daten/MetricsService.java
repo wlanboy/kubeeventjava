@@ -140,6 +140,7 @@ public class MetricsService {
                                         .tag("namespace", safe(namespace))
                                         .tag("statefulset", safe(name))
                                         .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
                                         .register(registry)
                                         .increment();
                 }
