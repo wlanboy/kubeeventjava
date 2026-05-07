@@ -65,7 +65,7 @@
       "gridPos": { "x": 0, "y": 6, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", involved_name=\"$pod\", kind=\"Pod\"}[5m])",
+          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"Pod\"}[5m])",
           "legendFormat": "{{reason}} / {{type}}"
         }
       ]
@@ -78,7 +78,7 @@
       "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", involved_name=\"$pod\", kind=\"Pod\"}[5m])",
+          "expr": "rate(kubeevents_involved_total{namespace=\"$namespace\", kind=\"Pod\"}[5m])",
           "legendFormat": "{{component}} / {{reason}}"
         }
       ]
@@ -91,8 +91,8 @@
       "gridPos": { "x": 0, "y": 18, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", pod=\"$pod\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
-          "legendFormat": "{{reason}}"
+          "expr": "increase(kubeevents_reason_total{namespace=\"$namespace\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
+          "legendFormat": "{{reason}} ({{type}})"
         }
       ]
     },
@@ -104,7 +104,7 @@
       "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{namespace=\"$namespace\", pod=\"$pod\", reason=\"FailedScheduling\"}[5m])",
+          "expr": "increase(kubeevents_failedscheduling_total{namespace=\"$namespace\"}[5m])",
           "legendFormat": "FailedScheduling"
         }
       ]
@@ -117,7 +117,7 @@
       "gridPos": { "x": 0, "y": 30, "w": 24, "h": 6 },
       "targets": [
         {
-          "expr": "rate(kubeevents_node_total{namespace=\"$namespace\"}[5m])",
+          "expr": "rate(kubeevents_node_total[5m])",
           "legendFormat": "{{host}}"
         }
       ]
