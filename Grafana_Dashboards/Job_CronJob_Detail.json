@@ -23,6 +23,36 @@
         "query": "label_values(kubeevents_job_total, namespace)",
         "includeAll": true,
         "multi": true
+      },
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Job",
+        "query": "label_values(kubeevents_job_total{namespace=~\"$namespace\"}, job)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "cronjob",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "CronJob",
+        "query": "label_values(kubeevents_cronjob_total{namespace=~\"$namespace\"}, cronjob)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "reason",
+        "type": "query",
+        "datasource": "$datasource",
+        "label": "Reason",
+        "query": "label_values(kubeevents_job_total{namespace=~\"$namespace\"}, reason)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
       }
     ]
   },
@@ -35,7 +65,7 @@
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
       "targets": [
-        { "expr": "sum(kubeevents_job_total{namespace=~\"$namespace\"})" }
+        { "expr": "sum(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\"})" }
       ]
     },
 
@@ -45,7 +75,7 @@
       "datasource": "$datasource",
       "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
       "targets": [
-        { "expr": "sum(kubeevents_job_total{namespace=~\"$namespace\", type=\"Warning\"})" }
+        { "expr": "sum(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\", type=\"Warning\"})" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -60,7 +90,7 @@
       "datasource": "$datasource",
       "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
       "targets": [
-        { "expr": "sum(kubeevents_cronjob_total{namespace=~\"$namespace\"})" }
+        { "expr": "sum(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\"})" }
       ]
     },
 
@@ -70,7 +100,7 @@
       "datasource": "$datasource",
       "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
       "targets": [
-        { "expr": "sum(kubeevents_cronjob_total{namespace=~\"$namespace\", type=\"Warning\"})" }
+        { "expr": "sum(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\", type=\"Warning\"})" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -86,7 +116,7 @@
       "gridPos": { "x": 0, "y": 4, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "rate(kubeevents_job_total{namespace=~\"$namespace\"}[5m])",
+          "expr": "rate(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\"}[5m])",
           "legendFormat": "{{namespace}} / {{job}} ({{type}})"
         }
       ]
@@ -99,7 +129,7 @@
       "gridPos": { "x": 12, "y": 4, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "rate(kubeevents_cronjob_total{namespace=~\"$namespace\"}[5m])",
+          "expr": "rate(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\"}[5m])",
           "legendFormat": "{{namespace}} / {{cronjob}} ({{type}})"
         }
       ]
@@ -112,7 +142,7 @@
       "gridPos": { "x": 0, "y": 11, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "sum by (reason, type) (rate(kubeevents_job_total{namespace=~\"$namespace\"}[5m]))",
+          "expr": "sum by (reason, type) (rate(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\"}[5m]))",
           "legendFormat": "{{reason}} ({{type}})"
         }
       ],
@@ -128,7 +158,7 @@
       "gridPos": { "x": 12, "y": 11, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "sum by (reason, type) (rate(kubeevents_cronjob_total{namespace=~\"$namespace\"}[5m]))",
+          "expr": "sum by (reason, type) (rate(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\"}[5m]))",
           "legendFormat": "{{reason}} ({{type}})"
         }
       ],
@@ -138,13 +168,55 @@
     },
 
     {
-      "type": "timeseries",
-      "title": "Job Failures (5m Increase)",
+      "type": "table",
+      "title": "Job Reason Breakdown",
       "datasource": "$datasource",
       "gridPos": { "x": 0, "y": 18, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", reason=~\"BackoffLimitExceeded|Failed|DeadlineExceeded\"}[5m])",
+          "expr": "sort_desc(sum by (reason, type, job) (increase(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\"}[30m])))",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "options": {
+        "sortBy": [{ "displayName": "Value", "desc": true }]
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "mode": "columns" } },
+        { "id": "organize", "options": { "renameByName": { "Value": "Count" } } }
+      ]
+    },
+
+    {
+      "type": "table",
+      "title": "CronJob Reason Breakdown",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "sort_desc(sum by (reason, type, cronjob) (increase(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\"}[30m])))",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "options": {
+        "sortBy": [{ "displayName": "Value", "desc": true }]
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": { "mode": "columns" } },
+        { "id": "organize", "options": { "renameByName": { "Value": "Count" } } }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Job Failures (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 25, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\", reason=~\"BackoffLimitExceeded|Failed|DeadlineExceeded\"}[5m])",
           "legendFormat": "{{namespace}} / {{job}} / {{reason}}"
         }
       ]
@@ -154,10 +226,10 @@
       "type": "timeseries",
       "title": "Job Completions (5m Increase)",
       "datasource": "$datasource",
-      "gridPos": { "x": 12, "y": 18, "w": 12, "h": 7 },
+      "gridPos": { "x": 12, "y": 25, "w": 12, "h": 7 },
       "targets": [
         {
-          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", reason=\"Completed\"}[5m])",
+          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\", reason=\"Completed\"}[5m])",
           "legendFormat": "{{namespace}} / {{job}}"
         }
       ]
@@ -167,14 +239,14 @@
       "type": "timeseries",
       "title": "Warning Events — Jobs & CronJobs",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 7 },
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 7 },
       "targets": [
         {
-          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", type=\"Warning\"}[5m])",
+          "expr": "increase(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\", type=\"Warning\"}[5m])",
           "legendFormat": "Job: {{namespace}} / {{job}} / {{reason}}"
         },
         {
-          "expr": "increase(kubeevents_cronjob_total{namespace=~\"$namespace\", type=\"Warning\"}[5m])",
+          "expr": "increase(kubeevents_cronjob_total{namespace=~\"$namespace\", cronjob=~\"$cronjob\", type=\"Warning\"}[5m])",
           "legendFormat": "CronJob: {{namespace}} / {{cronjob}} / {{reason}}"
         }
       ]
@@ -184,10 +256,10 @@
       "type": "timeseries",
       "title": "Top Jobs by Event Count (5m)",
       "datasource": "$datasource",
-      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 7 },
+      "gridPos": { "x": 0, "y": 39, "w": 24, "h": 7 },
       "targets": [
         {
-          "expr": "topk(10, sum by (namespace, job) (increase(kubeevents_job_total{namespace=~\"$namespace\"}[5m])))",
+          "expr": "topk(10, sum by (namespace, job) (increase(kubeevents_job_total{namespace=~\"$namespace\", job=~\"$job\"}[5m])))",
           "legendFormat": "{{namespace}} / {{job}}"
         }
       ],
