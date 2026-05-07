@@ -100,8 +100,8 @@
       "gridPos": { "x": 0, "y": 28, "w": 24, "h": 7 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{namespace=~\"$namespace\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
-          "legendFormat": "{{namespace}} / {{pod}} / {{reason}}"
+          "expr": "increase(kubeevents_reason_total{namespace=~\"$namespace\", reason=~\"BackOff|CrashLoopBackOff\"}[5m])",
+          "legendFormat": "{{namespace}} / {{reason}} ({{type}})"
         }
       ]
     },
@@ -113,8 +113,8 @@
       "gridPos": { "x": 0, "y": 35, "w": 24, "h": 7 },
       "targets": [
         {
-          "expr": "increase(kubeevents_pod_total{namespace=~\"$namespace\", reason=\"FailedScheduling\"}[5m])",
-          "legendFormat": "{{namespace}} / {{pod}}"
+          "expr": "increase(kubeevents_failedscheduling_total{namespace=~\"$namespace\"}[5m])",
+          "legendFormat": "{{namespace}}"
         }
       ]
     },
