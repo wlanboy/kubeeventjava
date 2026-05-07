@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-flicker
+  namespace: kubeeventjava
+  labels:
+    app: test-deployment-flicker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-deployment-flicker
+  template:
+    metadata:
+      labels:
+        app: test-deployment-flicker
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: test
+          image: busybox:1.36
+          command: ["sh", "-c", "echo 'deployment flicker starting'; sleep 10; echo 'deployment flicker failing'; exit 1"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
