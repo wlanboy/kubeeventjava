@@ -16,9 +16,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PreDestroy;
@@ -38,13 +44,21 @@ public class K8sWatcherService {
     private SharedInformerFactory factory;
     private GenericKubernetesApi<CoreV1Event, CoreV1EventList> eventApi;
 
+    private final Map<String, SharedIndexInformer<CoreV1Event>> informers = new ConcurrentHashMap<>();
+    private final Map<String, Future<?>> informerFutures = new ConcurrentHashMap<>();
+    private final ExecutorService informerExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "k8s-informer");
+        t.setDaemon(true);
+        return t;
+    });
+
     private void setupApi() {
         this.factory = new SharedInformerFactory(apiClient);
         this.eventApi = new GenericKubernetesApi<>(
                 CoreV1Event.class,
                 CoreV1EventList.class,
-                "", // Core API group
-                "v1", // Version
+                "",
+                "v1",
                 "events",
                 apiClient);
     }
@@ -63,23 +77,55 @@ public class K8sWatcherService {
         for (String ns : namespaces) {
             String targetNs = ns.trim();
             log.info("[WATCH] Setting up watcher for namespace: {}", targetNs);
-
-            // Beim Start: vorhandene Events importieren
             importExistingEvents(targetNs);
-
-            // Danach: Live-Watcher starten
             startInformer(targetNs);
         }
-
-        log.info("[WATCH] Starting informer factory...");
-        factory.startAllRegisteredInformers();
     }
 
     @PreDestroy
     public void shutdown() {
-        log.info("[WATCH] Shutting down informer factory...");
-        if (factory != null) {
-            factory.stopAllRegisteredInformers();
+        log.info("[WATCH] Shutting down informers...");
+        informers.values().forEach(i -> { try { i.stop(); } catch (Exception ignored) {} });
+        informerExecutor.shutdown();
+    }
+
+    // ---------------------------------------------------------
+    // HEALTH CHECK + RESTART
+    // ---------------------------------------------------------
+    private static final long HEALTH_CHECK_DELAY_MS = 30_000L;
+    private static final long HEALTH_CHECK_INITIAL_DELAY_MS = 60_000L;
+
+    @Scheduled(fixedDelay = HEALTH_CHECK_DELAY_MS, initialDelay = HEALTH_CHECK_INITIAL_DELAY_MS)
+    public void checkWatcherHealth() {
+        for (Map.Entry<String, Future<?>> entry : informerFutures.entrySet()) {
+            String ns = entry.getKey();
+            if (entry.getValue().isDone()) {
+                log.warn("[WATCH] Informer for namespace '{}' stopped — restarting", ns);
+                metricsService.incrementRestart();
+                restartInformerFor(ns);
+            }
+        }
+    }
+
+    private void restartInformerFor(String namespace) {
+        try {
+            SharedIndexInformer<CoreV1Event> old = informers.get(namespace);
+            if (old != null) {
+                try { old.stop(); } catch (Exception ignored) {}
+            }
+
+            SharedInformerFactory nsFactory = new SharedInformerFactory(apiClient);
+            GenericKubernetesApi<CoreV1Event, CoreV1EventList> nsApi = new GenericKubernetesApi<>(
+                    CoreV1Event.class, CoreV1EventList.class, "", "v1", "events", apiClient);
+            SharedIndexInformer<CoreV1Event> newInformer = nsFactory.sharedIndexInformerFor(
+                    nsApi, CoreV1Event.class, RESYNC_PERIOD_MS, namespace);
+            addHandlerToInformer(newInformer);
+            informers.put(namespace, newInformer);
+            informerFutures.put(namespace, informerExecutor.submit(newInformer::run));
+            log.info("[WATCH] Informer for namespace '{}' restarted successfully", namespace);
+        } catch (Exception e) {
+            log.error("[WATCH] Restart of informer for namespace '{}' failed", namespace, e);
+            metricsService.incrementError();
         }
     }
 
@@ -92,6 +138,7 @@ public class K8sWatcherService {
             if (!response.isSuccess()) {
                 log.error("[WATCH] Failed to list events for '{}': {} - {}",
                         namespace, response.getHttpStatusCode(), response.getStatus());
+                metricsService.incrementError();
                 return;
             }
 
@@ -109,13 +156,14 @@ public class K8sWatcherService {
 
         } catch (Exception e) {
             log.error("[WATCH] Failed to import existing events for '{}'", namespace, e);
+            metricsService.incrementError();
         }
     }
 
     // ---------------------------------------------------------
     // LIVE WATCHER
     // ---------------------------------------------------------
-    private static final long RESYNC_PERIOD_MS = 3600000L; // 1 Stunde
+    private static final long RESYNC_PERIOD_MS = 3600000L;
 
     private void startInformer(String namespace) {
         SharedIndexInformer<CoreV1Event> informer = factory.sharedIndexInformerFor(
@@ -123,7 +171,12 @@ public class K8sWatcherService {
                 CoreV1Event.class,
                 RESYNC_PERIOD_MS,
                 namespace);
+        addHandlerToInformer(informer);
+        informers.put(namespace, informer);
+        informerFutures.put(namespace, informerExecutor.submit(informer::run));
+    }
 
+    private void addHandlerToInformer(SharedIndexInformer<CoreV1Event> informer) {
         informer.addEventHandler(new ResourceEventHandler<CoreV1Event>() {
             @Override
             public void onAdd(CoreV1Event obj) {
@@ -159,7 +212,6 @@ public class K8sWatcherService {
             String uid = rawEvent.getMetadata().getUid();
             Integer count = safeCount(rawEvent);
 
-            // Doppelte Events vermeiden (erste Prüfung - schneller Check)
             if (repository.existsByUidAndCount(uid, count)) {
                 return;
             }
@@ -169,14 +221,11 @@ public class K8sWatcherService {
             String reason = rawEvent.getReason();
             String message = rawEvent.getMessage();
 
-            // Null-Check für involvedObject
             String kind = rawEvent.getInvolvedObject() != null
                     ? rawEvent.getInvolvedObject().getKind() : "unknown";
             String name = rawEvent.getInvolvedObject() != null
                     ? rawEvent.getInvolvedObject().getName() : "unknown";
 
-            // ReplicaSet-Namen haben das Format: <deployment-name>-<replicaset-hash>
-            // Wir extrahieren den Deployment-Namen durch Entfernen des letzten Hash-Teils
             String deployment = null;
             if ("ReplicaSet".equals(kind) && name != null && name.contains("-")) {
                 deployment = name.substring(0, name.lastIndexOf("-"));
@@ -187,7 +236,6 @@ public class K8sWatcherService {
                         ? rawEvent.getSource().getHost()
                         : "unknown";
 
-            // Event speichern
             K8sEvent entity = K8sEvent.builder()
                     .uid(uid)
                     .name(rawEvent.getMetadata().getName())
@@ -209,7 +257,6 @@ public class K8sWatcherService {
             metricsService.incrementEventFull(namespace, type, kind, name, reason, component, host, deployment);
 
         } catch (DataIntegrityViolationException e) {
-            // Race Condition: Event wurde bereits von anderem Thread gespeichert - ignorieren
             log.debug("[WATCH] Duplicate event ignored (uid+count already exists)");
         } catch (Exception e) {
             log.error("[WATCH] Error saving event", e);

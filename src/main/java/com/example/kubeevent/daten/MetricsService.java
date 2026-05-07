@@ -2,6 +2,7 @@ package com.example.kubeevent.daten;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -11,6 +12,16 @@ public class MetricsService {
 
         public MetricsService(MeterRegistry registry) {
                 this.registry = registry;
+        }
+
+        @PostConstruct
+        public void initializeWatcherMetrics() {
+                Counter.builder("kubeevents_watch_errors_total")
+                                .description("Number of watch errors")
+                                .register(registry);
+                Counter.builder("kubeevents_watch_restarts_total")
+                                .description("Number of watcher restarts")
+                                .register(registry);
         }
 
         public void incrementEventFull(
