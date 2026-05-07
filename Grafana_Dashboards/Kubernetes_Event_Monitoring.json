@@ -119,6 +119,84 @@
     },
 
     {
+      "type": "stat",
+      "title": "BackOff Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 8, "y": 26, "w": 4, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_backoff_total)", "legendFormat": "BackOff" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "OOMKilled Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 26, "w": 4, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_oomkilled_total)", "legendFormat": "OOMKilled" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "ImagePull Errors",
+      "datasource": "$datasource",
+      "gridPos": { "x": 16, "y": 26, "w": 4, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_imagepull_errors_total)", "legendFormat": "ImagePull" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 3 }
+          ]}
+        }
+      }
+    },
+
+    {
+      "type": "stat",
+      "title": "FailedScheduling",
+      "datasource": "$datasource",
+      "gridPos": { "x": 20, "y": 26, "w": 4, "h": 3 },
+      "targets": [
+        { "expr": "sum(kubeevents_failedscheduling_total)", "legendFormat": "FailedScheduling" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 1 }
+          ]}
+        }
+      }
+    },
+
+    {
       "type": "timeseries",
       "title": "Top Event Reasons",
       "datasource": "$datasource",
