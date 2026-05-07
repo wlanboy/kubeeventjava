@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: test-daemonset-flicker
+  namespace: kubeeventjava
+  labels:
+    app: test-daemonset-flicker
+spec:
+  selector:
+    matchLabels:
+      app: test-daemonset-flicker
+  template:
+    metadata:
+      labels:
+        app: test-daemonset-flicker
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: test
+          image: busybox:1.36
+          command: ["sh", "-c", "echo 'daemonset flicker starting'; sleep 10; echo 'daemonset flicker failing'; exit 1"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
