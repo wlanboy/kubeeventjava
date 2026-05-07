@@ -151,6 +151,91 @@ public class MetricsService {
                                         .register(registry)
                                         .increment();
                 }
+
+                // 15) Job / CronJob
+                if ("Job".equals(kind)) {
+                        Counter.builder("kubeevents_job_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("job", safe(name))
+                                        .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("CronJob".equals(kind)) {
+                        Counter.builder("kubeevents_cronjob_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("cronjob", safe(name))
+                                        .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 16) Ingress
+                if ("Ingress".equals(kind)) {
+                        Counter.builder("kubeevents_ingress_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("ingress", safe(name))
+                                        .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 17) PersistentVolume (cluster-scoped, kein Namespace)
+                if ("PersistentVolume".equals(kind)) {
+                        Counter.builder("kubeevents_pv_total")
+                                        .tag("pv", safe(name))
+                                        .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
+                                        .register(registry)
+                                        .increment();
+                }
+
+                // 18) Kritische Reasons
+                String safeReason = safe(reason);
+                if ("OOMKilled".equals(safeReason)) {
+                        Counter.builder("kubeevents_oomkilled_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("BackOff".equals(safeReason)) {
+                        Counter.builder("kubeevents_backoff_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("ErrImagePull".equals(safeReason) || "ImagePullBackOff".equals(safeReason)) {
+                        Counter.builder("kubeevents_imagepull_errors_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("reason", safeReason)
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("FailedScheduling".equals(safeReason)) {
+                        Counter.builder("kubeevents_failedscheduling_total")
+                                        .tag("namespace", safe(namespace))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("Evicted".equals(safeReason)) {
+                        Counter.builder("kubeevents_evicted_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("host", safe(host))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("FailedMount".equals(safeReason)) {
+                        Counter.builder("kubeevents_failedmount_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
         }
 
         public void incrementError() {
