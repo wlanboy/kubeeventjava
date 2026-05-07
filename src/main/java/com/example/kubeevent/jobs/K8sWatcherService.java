@@ -227,7 +227,9 @@ public class K8sWatcherService {
                     ? rawEvent.getInvolvedObject().getName() : "unknown";
 
             String deployment = null;
-            if ("ReplicaSet".equals(kind) && name != null && name.contains("-")) {
+            if ("Deployment".equals(kind)) {
+                deployment = name;
+            } else if ("ReplicaSet".equals(kind) && name != null && name.contains("-")) {
                 deployment = name.substring(0, name.lastIndexOf("-"));
             }
 
