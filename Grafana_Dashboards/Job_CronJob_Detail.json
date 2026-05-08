@@ -266,6 +266,19 @@
       "options": {
         "legend": { "displayMode": "table", "placement": "right" }
       }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "DeadlineExceeded — Jobs & CronJobs (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 46, "w": 24, "h": 7 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_deadlineexceeded_total{namespace=~\"$namespace\", kind=~\"Job|CronJob\"}[5m])",
+          "legendFormat": "{{namespace}} / {{kind}}"
+        }
+      ]
     }
   ]
 }
