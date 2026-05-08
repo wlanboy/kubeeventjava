@@ -193,6 +193,19 @@
           ]}
         }
       }
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Killing Events (Pod Termination) (5m Increase)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 45, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_killing_total{namespace=\"$namespace\"}[5m])",
+          "legendFormat": "{{namespace}} / {{kind}}"
+        }
+      ]
     }
   ]
 }
