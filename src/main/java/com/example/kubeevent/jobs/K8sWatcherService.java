@@ -233,10 +233,13 @@ public class K8sWatcherService {
                 deployment = name.substring(0, name.lastIndexOf("-"));
             }
 
-            String component = rawEvent.getSource() != null ? rawEvent.getSource().getComponent() : "unknown";
+            String component = rawEvent.getSource() != null && rawEvent.getSource().getComponent() != null
+                        ? rawEvent.getSource().getComponent()
+                        : (rawEvent.getReportingComponent() != null ? rawEvent.getReportingComponent() : "unknown");
             String host = rawEvent.getSource() != null && rawEvent.getSource().getHost() != null
                         ? rawEvent.getSource().getHost()
                         : "unknown";
+            String action = rawEvent.getAction();
 
             K8sEvent entity = K8sEvent.builder()
                     .uid(uid)
@@ -250,8 +253,11 @@ public class K8sWatcherService {
                     .sourceComponent(component)
                     .sourceHost(host)
                     .count(count)
-                    .firstTimestamp(rawEvent.getFirstTimestamp())
+                    .firstTimestamp(rawEvent.getFirstTimestamp() != null
+                            ? rawEvent.getFirstTimestamp()
+                            : rawEvent.getEventTime())
                     .lastTimestamp(rawEvent.getLastTimestamp())
+                    .action(action)
                     .build();
 
             repository.save(entity);

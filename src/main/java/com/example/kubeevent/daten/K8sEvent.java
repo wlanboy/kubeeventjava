@@ -49,6 +49,8 @@ public class K8sEvent {
 
     private String sourceHost;
 
+    private String action;
+
     private OffsetDateTime firstTimestamp;
     private OffsetDateTime lastTimestamp;
     
