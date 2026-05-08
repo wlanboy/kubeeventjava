@@ -67,7 +67,7 @@
       "targets": [
         {
           "expr": "rate(kubeevents_replicaset_total{namespace=\"$namespace\", replicaset=~\"$deployment.*\"}[5m])",
-          "legendFormat": "{{replicaset}} ({{type}})"
+          "legendFormat": "{{replicaset}} ({{type}}) / {{reason}}"
         }
       ]
     },
