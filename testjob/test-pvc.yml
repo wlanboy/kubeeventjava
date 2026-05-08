@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc
+  namespace: kubeeventjava
+  labels:
+    app: test-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-pvc-deployment
+  namespace: kubeeventjava
+  labels:
+    app: test-pvc-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-pvc-deployment
+  template:
+    metadata:
+      labels:
+        app: test-pvc-deployment
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: test
+          image: busybox:1.36
+          command: ["sh", "-c", "while true; do echo 'pvc running' >> /data/log.txt; sleep 30; done"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "32Mi"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: test-pvc
