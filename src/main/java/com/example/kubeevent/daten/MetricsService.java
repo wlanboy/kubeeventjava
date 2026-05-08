@@ -130,6 +130,7 @@ public class MetricsService {
                                         .tag("namespace", safe(namespace))
                                         .tag("replicaset", safe(name))
                                         .tag("type", safe(type))
+                                        .tag("reason", safe(reason))
                                         .register(registry)
                                         .increment();
                 }
@@ -276,6 +277,41 @@ public class MetricsService {
                 }
                 if ("Failed".equals(safeReason)) {
                         Counter.builder("kubeevents_failed_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("NodeNotReady".equals(safeReason) || "NodeReady".equals(safeReason)) {
+                        Counter.builder("kubeevents_node_ready_total")
+                                        .tag("node", safe(name))
+                                        .tag("reason", safeReason)
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("FailedCreate".equals(safeReason)) {
+                        Counter.builder("kubeevents_failedcreate_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("DeadlineExceeded".equals(safeReason)) {
+                        Counter.builder("kubeevents_deadlineexceeded_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("Killing".equals(safeReason)) {
+                        Counter.builder("kubeevents_killing_total")
+                                        .tag("namespace", safe(namespace))
+                                        .tag("kind", safe(kind))
+                                        .register(registry)
+                                        .increment();
+                }
+                if ("Preempting".equals(safeReason)) {
+                        Counter.builder("kubeevents_preempting_total")
                                         .tag("namespace", safe(namespace))
                                         .tag("kind", safe(kind))
                                         .register(registry)
