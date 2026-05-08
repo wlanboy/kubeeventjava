@@ -134,6 +134,19 @@
           "legendFormat": "Spike"
         }
       ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Node Ready / NotReady Events",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "increase(kubeevents_node_ready_total{node=\"$host\"}[5m])",
+          "legendFormat": "{{node}} / {{reason}}"
+        }
+      ]
     }
   ]
 }
