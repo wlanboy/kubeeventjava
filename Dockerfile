@@ -41,7 +41,7 @@ RUN cp target/kubeevent-0.0.1-SNAPSHOT.jar app.jar && \
 RUN java -XX:ArchiveClassesAtExit=app.jsa \
          -Dspring.context.exit=onRefresh \
          -Dspring.aot.enabled=true \
-         -cp "extracted/dependencies/*:extracted/observability-dependencies/*:extracted/snapshot-dependencies/*:extracted/application/" \
+         -cp "extracted/spring-boot-loader/*:extracted/dependencies/*:extracted/observability-dependencies/*:extracted/snapshot-dependencies/*:extracted/application/" \
          org.springframework.boot.loader.launch.JarLauncher || [ -f app.jsa ]
 
 # ============================
