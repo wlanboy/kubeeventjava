@@ -1,5 +1,11 @@
 # kubeeventjava – Tekton Pipeline
 
+Dieses Dokument beschreibt die Tekton-Pipeline für das Projekt **kubeeventjava**.
+Die Pipeline ersetzt die bestehenden GitHub Actions Workflows und führt in drei
+Schritten – Repository-Clone, Maven-Build (mit Spring Boot AOT) und
+Kaniko-Image-Build/Push – ein vollständiges CI/CD aus, das innerhalb eines
+lokalen kind-Clusters läuft.
+
 ## Übersicht
 
 Die Pipeline besteht aus drei aufeinanderfolgenden Tasks und spiegelt den
