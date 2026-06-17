@@ -69,11 +69,13 @@ mvn spring-boot:run
 
 ```bash
 docker build -t kubeevent:latest .
+docker build -f Dockerfile25 -t kubeevent:25 .
 docker build -f Dockerfile25Jlink -t kubeevent:jlink .
 
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep "kubeevent"
-kubeevent    jlink     410MB
-kubeevent    latest    864MB
+kubeevent          jlink     413MB
+kubeevent          25        756MB
+kubeevent          latest    759MB
 
 docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive kubeevent:jlink
 ```
@@ -87,14 +89,23 @@ docker run --rm --name kubeeventjava \
   -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
   -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
   kubeevent:latest
+#Started KubeeventApplication in 2.819 seconds
 
+docker run --rm --name kubeeventjava25 \
+  -p 8081:8080 \
+  -v $(pwd)/data:/app/data \
+  -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
+  -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
+  kubeevent:25
+#Started KubeeventApplication in 4.055 seconds
 
-docker run --rm --name kubeeventjava \
-  -p 8080:8080 \
+docker run --rm --name kubeeventjavajl \
+  -p 8082:8080 \
   -v $(pwd)/data:/app/data \
   -e DB_PATH="jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count" \
   -e POD_NAMESPACE="kubeeventjava,simpleservice,randomfail" \
   kubeevent:jlink
+#Started KubeeventApplication in 2.791 seconds
 ```
 
 ## Run service in cluster

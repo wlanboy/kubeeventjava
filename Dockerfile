@@ -1,8 +1,7 @@
 # ============================
 # 1. Build Stage (Java 25)
 # ============================
-FROM registry.access.redhat.com/ubi9/openjdk-25:latest AS build
-# Eclipse Temurin bietet aktuelle Java-Versionen inkl. Java 25
+FROM registry.access.redhat.com/ubi10/openjdk-25:latest AS build
 
 WORKDIR /app
 
@@ -47,7 +46,7 @@ RUN java -XX:ArchiveClassesAtExit=app.jsa \
 # ============================
 # 2. Runtime Stage (Java 25)
 # ============================
-FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:latest
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:latest
 
 # OCI-konforme Labels
 LABEL org.opencontainers.image.title="KubeEvent Java" \
@@ -56,7 +55,7 @@ LABEL org.opencontainers.image.title="KubeEvent Java" \
       org.opencontainers.image.vendor="wlanboy" \
       org.opencontainers.image.source="https://github.com/wlanboy/kubeeventjava" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.base.name="eclipse-temurin:25-jre"
+      org.opencontainers.image.base.name="openjdk-25-runtime:latest"
 
 WORKDIR /app
 
