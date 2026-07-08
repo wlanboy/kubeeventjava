@@ -8,6 +8,32 @@ import org.springframework.stereotype.Service;
 @Service
 public class MetricsService {
 
+        private static final String WATCH_ERRORS_TOTAL = "kubeevents_watch_errors_total";
+        private static final String WATCH_RESTARTS_TOTAL = "kubeevents_watch_restarts_total";
+        private static final String TOTAL = "kubeevents_total";
+        private static final String TYPE_TOTAL = "kubeevents_type_total";
+        private static final String NAMESPACE_TOTAL = "kubeevents_namespace_total";
+        private static final String NAMESPACE_TYPE_TOTAL = "kubeevents_namespace_type_total";
+        private static final String INVOLVED_TOTAL = "kubeevents_involved_total";
+        private static final String REASON_TOTAL = "kubeevents_reason_total";
+        private static final String COMPONENT_TOTAL = "kubeevents_component_total";
+        private static final String NODE_TOTAL = "kubeevents_node_total";
+        private static final String DEPLOYMENT_TOTAL = "kubeevents_deployment_total";
+        private static final String OOMKILLED_TOTAL = "kubeevents_oomkilled_total";
+        private static final String BACKOFF_TOTAL = "kubeevents_backoff_total";
+        private static final String IMAGEPULL_ERRORS_TOTAL = "kubeevents_imagepull_errors_total";
+        private static final String FAILEDSCHEDULING_TOTAL = "kubeevents_failedscheduling_total";
+        private static final String EVICTED_TOTAL = "kubeevents_evicted_total";
+        private static final String FAILEDMOUNT_TOTAL = "kubeevents_failedmount_total";
+        private static final String CRASHLOOPBACKOFF_TOTAL = "kubeevents_crashloopbackoff_total";
+        private static final String UNHEALTHY_TOTAL = "kubeevents_unhealthy_total";
+        private static final String FAILED_TOTAL = "kubeevents_failed_total";
+        private static final String NODE_READY_TOTAL = "kubeevents_node_ready_total";
+        private static final String FAILEDCREATE_TOTAL = "kubeevents_failedcreate_total";
+        private static final String DEADLINEEXCEEDED_TOTAL = "kubeevents_deadlineexceeded_total";
+        private static final String KILLING_TOTAL = "kubeevents_killing_total";
+        private static final String PREEMPTING_TOTAL = "kubeevents_preempting_total";
+
         private final MeterRegistry registry;
 
         public MetricsService(MeterRegistry registry) {
@@ -16,10 +42,10 @@ public class MetricsService {
 
         @PostConstruct
         public void initializeWatcherMetrics() {
-                Counter.builder("kubeevents_watch_errors_total")
+                Counter.builder(WATCH_ERRORS_TOTAL)
                                 .description("Number of watch errors")
                                 .register(registry);
-                Counter.builder("kubeevents_watch_restarts_total")
+                Counter.builder(WATCH_RESTARTS_TOTAL)
                                 .description("Number of watcher restarts")
                                 .register(registry);
         }
@@ -34,303 +60,113 @@ public class MetricsService {
                         String host,
                         String deployment) {
 
+                String safeNamespace = safe(namespace);
+                String safeType = safe(type);
+                String safeKind = safe(kind);
+                String safeName = safe(name);
+                String safeReason = safe(reason);
+                String safeHost = safe(host);
+
                 // 1) Gesamt
-                Counter.builder("kubeevents_total")
-                                .register(registry)
-                                .increment();
+                increment(TOTAL);
 
                 // 2) Typ
-                Counter.builder("kubeevents_type_total")
-                                .tag("type", safe(type))
-                                .register(registry)
-                                .increment();
+                increment(TYPE_TOTAL, "type", safeType);
 
                 // 3) Namespace
-                Counter.builder("kubeevents_namespace_total")
-                                .tag("namespace", safe(namespace))
-                                .register(registry)
-                                .increment();
+                increment(NAMESPACE_TOTAL, "namespace", safeNamespace);
 
                 // 4) Namespace + Typ
-                Counter.builder("kubeevents_namespace_type_total")
-                                .tag("namespace", safe(namespace))
-                                .tag("type", safe(type))
-                                .register(registry)
-                                .increment();
+                increment(NAMESPACE_TYPE_TOTAL, "namespace", safeNamespace, "type", safeType);
 
                 // 5) Involved Object (ohne involved_name wegen Kardinalitäts-Explosion)
-                Counter.builder("kubeevents_involved_total")
-                                .tag("namespace", safe(namespace))
-                                .tag("type", safe(type))
-                                .tag("kind", safe(kind))
-                                .tag("reason", safe(reason))
-                                .tag("component", safe(component))
-                                .tag("host", safe(host))
-                                .register(registry)
-                                .increment();
+                increment(INVOLVED_TOTAL,
+                                "namespace", safeNamespace,
+                                "type", safeType,
+                                "kind", safeKind,
+                                "reason", safeReason,
+                                "component", safe(component),
+                                "host", safeHost);
 
                 // 5b) Reason als dedizierte Metrik für einfaches Alerting
-                Counter.builder("kubeevents_reason_total")
-                                .tag("namespace", safe(namespace))
-                                .tag("reason", safe(reason))
-                                .tag("type", safe(type))
-                                .register(registry)
-                                .increment();
+                increment(REASON_TOTAL, "namespace", safeNamespace, "reason", safeReason, "type", safeType);
 
                 // 6) Component (nur wenn vorhanden)
                 if (component != null && !"unknown".equals(component)) {
-                        Counter.builder("kubeevents_component_total")
-                                        .tag("component", component)
-                                        .register(registry)
-                                        .increment();
+                        increment(COMPONENT_TOTAL, "component", component);
                 }
 
                 // 7) Node/Host (nur wenn vorhanden)
                 if (host != null && !"unknown".equals(host)) {
-                        Counter.builder("kubeevents_node_total")
-                                        .tag("host", host)
-                                        .register(registry)
-                                        .increment();
+                        increment(NODE_TOTAL, "host", host);
                 }
 
                 // 8) Deployment (nur wenn vorhanden)
                 if (deployment != null && !deployment.isBlank()) {
-                        Counter.builder("kubeevents_deployment_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("deployment", deployment)
-                                        .tag("type", safe(type))
-                                        .register(registry)
-                                        .increment();
+                        increment(DEPLOYMENT_TOTAL, "namespace", safeNamespace, "deployment", deployment, "type", safeType);
                 }
 
-                // 9) Pod
-                if ("Pod".equals(kind)) {
-                        Counter.builder("kubeevents_pod_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("pod", safe(name))
-                                        .tag("type", safe(type))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 10) Deployment
-                if ("Deployment".equals(kind)) {
-                        Counter.builder("kubeevents_deployment_events_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("deployment", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 10b) ReplicaSet
-                if ("ReplicaSet".equals(kind)) {
-                        Counter.builder("kubeevents_replicaset_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("replicaset", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 11) StatefulSet
-                if ("StatefulSet".equals(kind)) {
-                        Counter.builder("kubeevents_statefulset_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("statefulset", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 12) DaemonSet
-                if ("DaemonSet".equals(kind)) {
-                        Counter.builder("kubeevents_daemonset_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("daemonset", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 13) PersistentVolumeClaim (Storage-Probleme)
-                if ("PersistentVolumeClaim".equals(kind)) {
-                        Counter.builder("kubeevents_pvc_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("pvc", safe(name))
-                                        .tag("type", safe(type))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 14) Node (Cluster-Health)
-                if ("Node".equals(kind)) {
-                        Counter.builder("kubeevents_node_events_total")
-                                        .tag("node", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 15) Job / CronJob
-                if ("Job".equals(kind)) {
-                        Counter.builder("kubeevents_job_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("job", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-                if ("CronJob".equals(kind)) {
-                        Counter.builder("kubeevents_cronjob_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("cronjob", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 16) Ingress
-                if ("Ingress".equals(kind)) {
-                        Counter.builder("kubeevents_ingress_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("ingress", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
-                }
-
-                // 17) PersistentVolume (cluster-scoped, kein Namespace)
-                if ("PersistentVolume".equals(kind)) {
-                        Counter.builder("kubeevents_pv_total")
-                                        .tag("pv", safe(name))
-                                        .tag("type", safe(type))
-                                        .tag("reason", safe(reason))
-                                        .register(registry)
-                                        .increment();
+                // 9-17) Pod / Deployment / ReplicaSet / StatefulSet / DaemonSet / PVC / Node / Job / CronJob / Ingress / PV
+                EventKind eventKind = EventKind.fromK8sKind(kind);
+                if (eventKind != null) {
+                        increment(eventKind.metricName, eventKind.tags(safeNamespace, safeName, safeType, safeReason));
                 }
 
                 // 18) Kritische Reasons
-                String safeReason = safe(reason);
                 if ("OOMKilled".equals(safeReason)) {
-                        Counter.builder("kubeevents_oomkilled_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(OOMKILLED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("BackOff".equals(safeReason)) {
-                        Counter.builder("kubeevents_backoff_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(BACKOFF_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("ErrImagePull".equals(safeReason) || "ImagePullBackOff".equals(safeReason)) {
-                        Counter.builder("kubeevents_imagepull_errors_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("reason", safeReason)
-                                        .register(registry)
-                                        .increment();
+                        increment(IMAGEPULL_ERRORS_TOTAL, "namespace", safeNamespace, "reason", safeReason);
                 }
                 if ("FailedScheduling".equals(safeReason)) {
-                        Counter.builder("kubeevents_failedscheduling_total")
-                                        .tag("namespace", safe(namespace))
-                                        .register(registry)
-                                        .increment();
+                        increment(FAILEDSCHEDULING_TOTAL, "namespace", safeNamespace);
                 }
                 if ("Evicted".equals(safeReason)) {
-                        Counter.builder("kubeevents_evicted_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("host", safe(host))
-                                        .register(registry)
-                                        .increment();
+                        increment(EVICTED_TOTAL, "namespace", safeNamespace, "host", safeHost);
                 }
                 if ("FailedMount".equals(safeReason)) {
-                        Counter.builder("kubeevents_failedmount_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(FAILEDMOUNT_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("CrashLoopBackOff".equals(safeReason)) {
-                        Counter.builder("kubeevents_crashloopbackoff_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(CRASHLOOPBACKOFF_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("Unhealthy".equals(safeReason)) {
-                        Counter.builder("kubeevents_unhealthy_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(UNHEALTHY_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("Failed".equals(safeReason)) {
-                        Counter.builder("kubeevents_failed_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(FAILED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("NodeNotReady".equals(safeReason) || "NodeReady".equals(safeReason)) {
-                        Counter.builder("kubeevents_node_ready_total")
-                                        .tag("node", safe(name))
-                                        .tag("reason", safeReason)
-                                        .register(registry)
-                                        .increment();
+                        increment(NODE_READY_TOTAL, "node", safeName, "reason", safeReason);
                 }
                 if ("FailedCreate".equals(safeReason)) {
-                        Counter.builder("kubeevents_failedcreate_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(FAILEDCREATE_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("DeadlineExceeded".equals(safeReason)) {
-                        Counter.builder("kubeevents_deadlineexceeded_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(DEADLINEEXCEEDED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("Killing".equals(safeReason)) {
-                        Counter.builder("kubeevents_killing_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(KILLING_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
                 if ("Preempting".equals(safeReason)) {
-                        Counter.builder("kubeevents_preempting_total")
-                                        .tag("namespace", safe(namespace))
-                                        .tag("kind", safe(kind))
-                                        .register(registry)
-                                        .increment();
+                        increment(PREEMPTING_TOTAL, "namespace", safeNamespace, "kind", safeKind);
                 }
         }
 
         public void incrementError() {
-                Counter.builder("kubeevents_watch_errors_total")
-                                .description("Number of watch errors")
-                                .register(registry)
-                                .increment();
+                increment(WATCH_ERRORS_TOTAL);
         }
 
         public void incrementRestart() {
-                Counter.builder("kubeevents_watch_restarts_total")
-                                .description("Number of watcher restarts")
-                                .register(registry)
-                                .increment();
+                increment(WATCH_RESTARTS_TOTAL);
+        }
+
+        private void increment(String name, String... tags) {
+                registry.counter(name, tags).increment();
         }
 
         private String safe(String v) {
