@@ -54,7 +54,11 @@ public class K8sWatcherService {
 
     private void setupApi() {
         this.factory = new SharedInformerFactory(apiClient);
-        this.eventApi = new GenericKubernetesApi<>(
+        this.eventApi = newEventApi();
+    }
+
+    private GenericKubernetesApi<CoreV1Event, CoreV1EventList> newEventApi() {
+        return new GenericKubernetesApi<>(
                 CoreV1Event.class,
                 CoreV1EventList.class,
                 "",
@@ -115,13 +119,7 @@ public class K8sWatcherService {
             }
 
             SharedInformerFactory nsFactory = new SharedInformerFactory(apiClient);
-            GenericKubernetesApi<CoreV1Event, CoreV1EventList> nsApi = new GenericKubernetesApi<>(
-                    CoreV1Event.class, CoreV1EventList.class, "", "v1", "events", apiClient);
-            SharedIndexInformer<CoreV1Event> newInformer = nsFactory.sharedIndexInformerFor(
-                    nsApi, CoreV1Event.class, RESYNC_PERIOD_MS, namespace);
-            addHandlerToInformer(newInformer);
-            informers.put(namespace, newInformer);
-            informerFutures.put(namespace, informerExecutor.submit(newInformer::run));
+            createAndStartInformer(nsFactory, newEventApi(), namespace);
             log.info("[WATCH] Informer for namespace '{}' restarted successfully", namespace);
         } catch (Exception e) {
             log.error("[WATCH] Restart of informer for namespace '{}' failed", namespace, e);
@@ -166,8 +164,14 @@ public class K8sWatcherService {
     private static final long RESYNC_PERIOD_MS = 3600000L;
 
     private void startInformer(String namespace) {
-        SharedIndexInformer<CoreV1Event> informer = factory.sharedIndexInformerFor(
-                eventApi,
+        createAndStartInformer(factory, eventApi, namespace);
+    }
+
+    private void createAndStartInformer(SharedInformerFactory targetFactory,
+            GenericKubernetesApi<CoreV1Event, CoreV1EventList> targetApi,
+            String namespace) {
+        SharedIndexInformer<CoreV1Event> informer = targetFactory.sharedIndexInformerFor(
+                targetApi,
                 CoreV1Event.class,
                 RESYNC_PERIOD_MS,
                 namespace);
