@@ -89,7 +89,14 @@ public class K8sWatcherService {
     @PreDestroy
     public void shutdown() {
         log.info("[WATCH] Shutting down informers...");
-        informers.values().forEach(i -> { try { i.stop(); } catch (Exception ignored) {} });
+        informers.values().forEach(i -> {
+            try {
+                i.stop();
+            } catch (Exception e) {
+                log.warn("[WATCH] Error stopping informer", e);
+            }
+        });
+        informerFutures.values().forEach(f -> f.cancel(true));
         informerExecutor.shutdown();
     }
 
@@ -115,7 +122,11 @@ public class K8sWatcherService {
         try {
             SharedIndexInformer<CoreV1Event> old = informers.get(namespace);
             if (old != null) {
-                try { old.stop(); } catch (Exception ignored) {}
+                try {
+                    old.stop();
+                } catch (Exception e) {
+                    log.warn("[WATCH] Error stopping old informer for namespace '{}'", namespace, e);
+                }
             }
 
             SharedInformerFactory nsFactory = new SharedInformerFactory(apiClient);
