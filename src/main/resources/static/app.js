@@ -48,47 +48,47 @@ function createEventRowHtml(ev, isSearch = false) {
         ? new Date(createdAt).toLocaleString()
         : new Date(createdAt).toLocaleTimeString();
 
-    let statusColor = "var(--pico-primary)";
-    let badgeColor = "#1e88e5";
+    let typeClass = "type-normal";
+    let badgeClass = "";
 
     if (ev.type === 'Warning') {
-        statusColor = "#fb8c00";
-        badgeColor = "#fb8c00";
+        typeClass = "type-warning";
+        badgeClass = "badge-count--warning";
     } else if (ev.type === 'Error' || ev.reason?.toLowerCase().includes('fail')) {
-        statusColor = "#e53935";
-        badgeColor = "#e53935";
+        typeClass = "type-error";
+        badgeClass = "badge-count--danger";
     }
 
     return `
-        <td style="font-size: 0.8rem; vertical-align: top; white-space: nowrap;">${date}</td>
-        <td style="vertical-align: top; font-weight: bold; color: ${statusColor};">${type}</td>
-        <td style="vertical-align: top;"><code style="color: var(--pico-contrast);">${reason}</code></td>
+        <td class="cell-time">${date}</td>
+        <td class="cell-type ${typeClass}">${type}</td>
+        <td class="cell-reason"><code>${reason}</code></td>
         <td>
-            <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <div class="cell-message">
                 ${ev.count > 1 ? `
-                    <span style="background-color: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 1rem; font-size: 0.7rem; font-weight: bold; margin-top: 2px; white-space: nowrap;">
+                    <span class="badge-count ${badgeClass}">
                         ${ev.count}x
                     </span>` : ''}
-                <span style="line-height: 1.5; font-size: 0.95rem;">${message}</span>
+                <span class="message-text">${message}</span>
             </div>
         </td>
-        <td style="font-size: 0.8rem; vertical-align: top;">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <kbd style="font-size: 0.6rem; background: var(--pico-muted-background); color: var(--pico-muted-color); text-transform: uppercase; min-width: 45px; text-align: center;">
+        <td class="cell-object">
+            <div class="object-meta">
+                <kbd class="object-kind">
                     ${involvedKind}
                 </kbd>
-                <div style="line-height: 1.2;">
-                    <div style="color: var(--pico-muted-color); font-size: 0.75rem;">
-                        <a href="#" data-filter="${namespace}" class="filter-link" style="color:inherit">NS: ${namespace}</a>
+                <div class="object-details">
+                    <div class="object-line">
+                        <a href="#" data-filter="${namespace}" class="filter-link">NS: ${namespace}</a>
                     </div>
-                    <div style="font-weight: bold; color: var(--pico-contrast);">
-                        <a href="#" data-filter="${involvedName}" class="filter-link" style="color:inherit">ID: ${involvedName}</a>
+                    <div class="object-line object-name">
+                        <a href="#" data-filter="${involvedName}" class="filter-link">ID: ${involvedName}</a>
                     </div>
-                    <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
-                        <a href="#" data-filter="${host}" class="filter-link" style="color:inherit">Host: ${host}</a>
+                    <div class="object-line">
+                        <a href="#" data-filter="${host}" class="filter-link">Host: ${host}</a>
                     </div>
-                    <div style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 2px;">
-                        <a href="#" data-filter="${component}" class="filter-link" style="color:inherit">Component: ${component}</a>
+                    <div class="object-line">
+                        <a href="#" data-filter="${component}" class="filter-link">Component: ${component}</a>
                     </div>
                 </div>
             </div>
@@ -195,7 +195,7 @@ async function doSearch(page = 1) {
     try {
         const res = await fetch(url);
         if (!res.ok) {
-            resultsContainer.innerHTML = `<tr><td colspan="5" style="color: #e53935; text-align: center;">
+            resultsContainer.innerHTML = `<tr><td colspan="5" class="table-message error">
                 Fehler beim Laden der Suchergebnisse (HTTP ${res.status})
             </td></tr>`;
             return;
@@ -206,7 +206,7 @@ async function doSearch(page = 1) {
         resultsContainer.innerHTML = "";
 
         if (items.length === 0) {
-            resultsContainer.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--pico-muted-color);">
+            resultsContainer.innerHTML = `<tr><td colspan="5" class="table-message">
                 Keine Ergebnisse gefunden
             </td></tr>`;
         } else {
@@ -219,7 +219,7 @@ async function doSearch(page = 1) {
         renderSearchPagination(data.pages || 1);
     } catch (e) {
         console.error("Search error:", e);
-        resultsContainer.innerHTML = `<tr><td colspan="5" style="color: #e53935; text-align: center;">
+        resultsContainer.innerHTML = `<tr><td colspan="5" class="table-message error">
             Netzwerkfehler - bitte Verbindung prüfen
         </td></tr>`;
     }
@@ -278,41 +278,49 @@ async function updateStats() {
 
 function renderStatsUI(s) {
     const container = document.getElementById("statsList");
-    container.style.cursor = "pointer";
+    container.classList.add("clickable");
     container.onclick = (e) => { if (e.target.tagName !== 'A') updateStats(); };
 
-    const makeClickable = (list, color) => {
-        if (list.size === 0) return '<span style="color: var(--pico-muted-color);">None</span>';
+    const makeClickable = (list, colorClass) => {
+        if (list.size === 0) return '<span class="text-muted">None</span>';
         return Array.from(list).map(item => {
             const escaped = escapeHtml(item);
-            return `<a href="#" data-filter="${escaped}" class="filter-link stats-filter-link"
-               style="color: ${color}; text-decoration: underline; margin-right: 8px; font-weight: 500;">${escaped}</a>`;
+            return `<a href="#" data-filter="${escaped}" class="filter-link ${colorClass}">${escaped}</a>`;
         }).join('');
     };
 
     container.innerHTML = `
-        <div class="grid">
-            <article style="padding: 1rem; border-top: 4px solid var(--pico-primary);">
+        <div class="stat-grid">
+            <article class="stat-card stat-card--primary">
                 <small>Total Events <cite>(Click to refresh)</cite></small>
-                <h3 style="margin:0">${s.total}</h3>
+                <h3>${s.total}</h3>
             </article>
-            <article style="padding: 1rem; border-top: 4px solid var(--pico-secondary);">
+            <article class="stat-card stat-card--secondary">
                 <small>Active (NS/Depl/Pods)</small>
-                <h3 style="margin:0">${s.namespaces.size} / ${s.deployments.size} / ${s.pods.size}</h3>
+                <h3>${s.namespaces.size} / ${s.deployments.size} / ${s.pods.size}</h3>
             </article>
-            <article style="padding: 1rem; border-top: 4px solid ${s.restarts > 0 ? '#fb8c00' : 'var(--pico-muted-border)'}">
+            <article class="stat-card ${s.restarts > 0 ? 'stat-card--warning' : 'stat-card--muted'}">
                 <small>Watch Restarts</small>
-                <h3 style="margin:0">${s.restarts}</h3>
+                <h3>${s.restarts}</h3>
             </article>
-            <article style="padding: 1rem; border-top: 4px solid ${s.errors > 0 ? '#e53935' : 'var(--pico-muted-border)'}">
+            <article class="stat-card ${s.errors > 0 ? 'stat-card--danger' : 'stat-card--muted'}">
                 <small>Watch Errors</small>
-                <h3 style="margin:0">${s.errors}</h3>
+                <h3>${s.errors}</h3>
             </article>
         </div>
-        <div class="grid" style="margin-top: 1rem; background: var(--pico-card-background-color); padding: 1rem; border-radius: 8px;">
-            <div><strong style="color: #fb8c00;">⚠️ Bad Namespaces:</strong><div style="font-size: 0.85rem;">${makeClickable(s.badNamespaces, '#fb8c00')}</div></div>
-            <div><strong style="color: #fb8c00;">⚠️ Bad Deployments:</strong><div style="font-size: 0.85rem;">${makeClickable(s.badDeployments, '#fb8c00')}</div></div>
-            <div><strong style="color: #e53935;">🔥 Critical Pods:</strong><div style="font-size: 0.85rem;">${makeClickable(s.badPods, '#e53935')}</div></div>
+        <div class="grid alert-panel">
+            <div>
+                <strong class="alert-group-title text-warning">⚠️ Bad Namespaces:</strong>
+                <div class="alert-group-links">${makeClickable(s.badNamespaces, 'text-warning')}</div>
+            </div>
+            <div>
+                <strong class="alert-group-title text-warning">⚠️ Bad Deployments:</strong>
+                <div class="alert-group-links">${makeClickable(s.badDeployments, 'text-warning')}</div>
+            </div>
+            <div>
+                <strong class="alert-group-title text-danger">🔥 Critical Pods:</strong>
+                <div class="alert-group-links">${makeClickable(s.badPods, 'text-danger')}</div>
+            </div>
         </div>
     `;
 }
