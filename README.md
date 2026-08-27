@@ -111,10 +111,7 @@ docker run --rm --name kubeeventjavajl \
 ## Run service in cluster
 
 ```bash
-cd kubeevent-chart
-helm install kubeevent . -n kubeevent --create-namespace
-
-cd ..
+helm upgrade kubeevent ./kubeeventjava-chart -n kubeevent --create-namespace --set pvc.storageClassName=standard
 
 curl -fsSL https://raw.githubusercontent.com/metalbear-co/mirrord/main/scripts/install.sh | bash
 
