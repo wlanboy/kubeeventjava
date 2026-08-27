@@ -49,10 +49,10 @@ serviceAccount:
   name: kubeeventjavasa
 
 watchNamespaces:
-  - kubeeventjava
+  - kubeevent
   - randomfail
 
 env:
   DB_PATH: "jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count"
-  POD_NAMESPACE: "kubeeventjava,randomfail"
+  POD_NAMESPACE: "kubeevent,randomfail"
 
