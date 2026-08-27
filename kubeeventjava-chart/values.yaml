@@ -26,10 +26,10 @@ volume:
 istio:
   gatewayName: kubeeventjava-gw
   gatewayNamespace: "istio-ingress"
-  hosts: 
+  hosts:
     - kubeeventjava.tp.lan
     - kubeeventjava.gmk.lan
-    - kubeevevt.localhost
+    - kubeevent.localhost
   tls:
     enabled: true
     secretName: kubeeventjava-tls
@@ -42,7 +42,7 @@ certManager:
   dnsNames:
     - kubeeventjava.tp.lan
     - kubeeventjava.gmk.lan
-    - kubeevevt.localhost
+    - kubeevent.localhost
 
 serviceAccount:
   create: true
