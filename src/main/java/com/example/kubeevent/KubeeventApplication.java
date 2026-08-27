@@ -26,7 +26,6 @@ public class KubeeventApplication {
             }
         }
 
-        //SpringApplication.run(KubeeventApplication.class, args);
         SpringApplication app = new SpringApplication(KubeeventApplication.class);
         app.setApplicationStartup(new BufferingApplicationStartup(2048));
         app.run(args);
