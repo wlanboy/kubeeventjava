@@ -29,6 +29,7 @@ istio:
   hosts: 
     - kubeeventjava.tp.lan
     - kubeeventjava.gmk.lan
+    - kubeevevt.localhost
   tls:
     enabled: true
     secretName: kubeeventjava-tls
@@ -41,6 +42,7 @@ certManager:
   dnsNames:
     - kubeeventjava.tp.lan
     - kubeeventjava.gmk.lan
+    - kubeevevt.localhost
 
 serviceAccount:
   create: true
@@ -48,10 +50,9 @@ serviceAccount:
 
 watchNamespaces:
   - kubeeventjava
-  - mirror
   - randomfail
 
 env:
   DB_PATH: "jdbc:h2:file:/app/data/events;DB_CLOSE_DELAY=-1;NON_KEYWORDS=count"
-  POD_NAMESPACE: "kubeeventjava,mirror,randomfail"
+  POD_NAMESPACE: "kubeeventjava,randomfail"
 
