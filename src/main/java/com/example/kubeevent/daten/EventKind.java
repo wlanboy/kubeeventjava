@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-enum EventKind {
+public enum EventKind {
         POD("Pod", "kubeevents_pod_total", "pod", true, false),
         DEPLOYMENT("Deployment", "kubeevents_deployment_events_total", "deployment", true, true),
         REPLICASET("ReplicaSet", "kubeevents_replicaset_total", "replicaset", true, true),
@@ -37,8 +37,20 @@ enum EventKind {
                 this.includeReason = includeReason;
         }
 
-        static EventKind fromK8sKind(String kind) {
+        public static EventKind fromK8sKind(String kind) {
                 return BY_K8S_KIND.get(kind);
+        }
+
+        // Deployment-Name wird nur für Deployment (direkt) und ReplicaSet (Pod-Hash-Suffix entfernen) abgeleitet
+        public static String deriveDeploymentName(String kind, String name) {
+                EventKind eventKind = fromK8sKind(kind);
+                if (eventKind == DEPLOYMENT) {
+                        return name;
+                }
+                if (eventKind == REPLICASET && name != null && name.contains("-")) {
+                        return name.substring(0, name.lastIndexOf("-"));
+                }
+                return null;
         }
 
         String[] tags(String safeNamespace, String safeName, String safeType, String safeReason) {

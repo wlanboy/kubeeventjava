@@ -1,5 +1,6 @@
 package com.example.kubeevent.jobs;
 
+import com.example.kubeevent.daten.EventKind;
 import com.example.kubeevent.daten.EventOccurrence;
 import com.example.kubeevent.daten.K8sEvent;
 import com.example.kubeevent.daten.K8sEventRepository;
@@ -202,8 +203,8 @@ public class K8sWatcherService {
 
             @Override
             public void onUpdate(CoreV1Event oldObj, CoreV1Event newObj) {
-                Integer oldCount = safeCount(oldObj);
-                Integer newCount = safeCount(newObj);
+                Integer oldCount = K8sEvent.safeCount(oldObj);
+                Integer newCount = K8sEvent.safeCount(newObj);
 
                 if (!oldCount.equals(newCount)) {
                     log.debug("[WATCH] onUpdate: {} ({} → {})",
@@ -225,60 +226,24 @@ public class K8sWatcherService {
     @Transactional
     protected void processIncomingEvent(CoreV1Event rawEvent) {
         try {
-            String uid = rawEvent.getMetadata().getUid();
-            Integer count = safeCount(rawEvent);
+            K8sEvent entity = K8sEvent.fromCoreV1Event(rawEvent);
 
-            if (repository.existsByUidAndCount(uid, count)) {
+            if (repository.existsByUidAndCount(entity.getUid(), entity.getCount())) {
                 return;
             }
 
-            String namespace = rawEvent.getMetadata().getNamespace();
-            String type = rawEvent.getType();
-            String reason = rawEvent.getReason();
-            String message = rawEvent.getMessage();
-
-            String kind = rawEvent.getInvolvedObject() != null
-                    ? rawEvent.getInvolvedObject().getKind() : "unknown";
-            String name = rawEvent.getInvolvedObject() != null
-                    ? rawEvent.getInvolvedObject().getName() : "unknown";
-
-            String deployment = null;
-            if ("Deployment".equals(kind)) {
-                deployment = name;
-            } else if ("ReplicaSet".equals(kind) && name != null && name.contains("-")) {
-                deployment = name.substring(0, name.lastIndexOf("-"));
-            }
-
-            String component = rawEvent.getSource() != null && rawEvent.getSource().getComponent() != null
-                        ? rawEvent.getSource().getComponent()
-                        : (rawEvent.getReportingComponent() != null ? rawEvent.getReportingComponent() : "unknown");
-            String host = rawEvent.getSource() != null && rawEvent.getSource().getHost() != null
-                        ? rawEvent.getSource().getHost()
-                        : "unknown";
-            String action = rawEvent.getAction();
-
-            K8sEvent entity = K8sEvent.builder()
-                    .uid(uid)
-                    .name(rawEvent.getMetadata().getName())
-                    .namespace(namespace)
-                    .reason(reason)
-                    .type(type)
-                    .message(message)
-                    .involvedKind(kind)
-                    .involvedName(name)
-                    .sourceComponent(component)
-                    .sourceHost(host)
-                    .count(count)
-                    .firstTimestamp(rawEvent.getFirstTimestamp() != null
-                            ? rawEvent.getFirstTimestamp()
-                            : rawEvent.getEventTime())
-                    .lastTimestamp(rawEvent.getLastTimestamp())
-                    .action(action)
-                    .build();
-
             repository.save(entity);
 
-            metricsService.recordEvent(new EventOccurrence(namespace, type, kind, name, reason, component, host, deployment));
+            String deployment = EventKind.deriveDeploymentName(entity.getInvolvedKind(), entity.getInvolvedName());
+            metricsService.recordEvent(new EventOccurrence(
+                    entity.getNamespace(),
+                    entity.getType(),
+                    entity.getInvolvedKind(),
+                    entity.getInvolvedName(),
+                    entity.getReason(),
+                    entity.getSourceComponent(),
+                    entity.getSourceHost(),
+                    deployment));
 
         } catch (DataIntegrityViolationException e) {
             log.debug("[WATCH] Duplicate event ignored (uid+count already exists)");
@@ -286,19 +251,6 @@ public class K8sWatcherService {
             log.error("[WATCH] Error saving event", e);
             metricsService.incrementError();
         }
-    }
-
-    // ---------------------------------------------------------
-    // Helper
-    // ---------------------------------------------------------
-    private Integer safeCount(CoreV1Event event) {
-        if (event.getCount() != null) {
-            return event.getCount();
-        }
-        if (event.getSeries() != null && event.getSeries().getCount() != null) {
-            return event.getSeries().getCount();
-        }
-        return 1;
     }
 
 }
