@@ -458,9 +458,13 @@ table tbody tr:hover {
     border: 1px solid var(--kb-border);
     text-transform: uppercase;
     min-width: 45px;
+    max-width: 90px;
+    flex-shrink: 0;
     text-align: center;
     padding: 0.2rem 0.3rem;
     border-radius: var(--kb-radius-sm);
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .object-details {
