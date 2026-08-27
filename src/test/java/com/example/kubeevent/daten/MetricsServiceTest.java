@@ -52,9 +52,8 @@ class MetricsServiceTest {
 	}
 
 	@Test
-	void incrementEventFull_incrementsCoreCounters() {
-		metricsService.incrementEventFull(
-				"default", "Warning", "Pod", "mypod", "OOMKilled", "kubelet", "node1", "myapp");
+	void recordEvent_incrementsCoreCounters() {
+		metricsService.recordEvent(new EventOccurrence("default", "Warning", "Pod", "mypod", "OOMKilled", "kubelet", "node1", "myapp"));
 
 		assertThat(count("kubeevents_total")).isEqualTo(1);
 		assertThat(count("kubeevents_type_total", "type", "Warning")).isEqualTo(1);
@@ -74,8 +73,8 @@ class MetricsServiceTest {
 	}
 
 	@Test
-	void incrementEventFull_defaultsMissingValuesToUnknown() {
-		metricsService.incrementEventFull(null, "", null, null, null, null, null, null);
+	void recordEvent_defaultsMissingValuesToUnknown() {
+		metricsService.recordEvent(new EventOccurrence(null, "", null, null, null, null, null, null));
 
 		assertThat(count("kubeevents_namespace_total", "namespace", "unknown")).isEqualTo(1);
 		assertThat(count("kubeevents_type_total", "type", "unknown")).isEqualTo(1);
@@ -90,47 +89,47 @@ class MetricsServiceTest {
 	}
 
 	@Test
-	void incrementEventFull_componentIsOnlyRecordedWhenPresentAndKnown() {
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", "kubelet", null, null);
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", null, null, null);
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", "unknown", null, null);
+	void recordEvent_componentIsOnlyRecordedWhenPresentAndKnown() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", "kubelet", null, null));
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", null, null, null));
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", "unknown", null, null));
 
 		assertThat(count("kubeevents_component_total", "component", "kubelet")).isEqualTo(1);
 		assertThat(registry.find("kubeevents_component_total").tags("component", "unknown").counter()).isNull();
 	}
 
 	@Test
-	void incrementEventFull_hostIsOnlyRecordedWhenPresentAndKnown() {
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", null, "node1", null);
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", null, null, null);
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Reason", null, "unknown", null);
+	void recordEvent_hostIsOnlyRecordedWhenPresentAndKnown() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", null, "node1", null));
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", null, null, null));
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Reason", null, "unknown", null));
 
 		assertThat(count("kubeevents_node_total", "host", "node1")).isEqualTo(1);
 		assertThat(registry.find("kubeevents_node_total").tags("host", "unknown").counter()).isNull();
 	}
 
 	@Test
-	void incrementEventFull_deploymentIsOnlyRecordedWhenPresentAndNonBlank() {
-		metricsService.incrementEventFull("ns", "Warning", "Deployment", "d", "Reason", null, null, "myapp");
-		metricsService.incrementEventFull("ns", "Warning", "Deployment", "d", "Reason", null, null, null);
-		metricsService.incrementEventFull("ns", "Warning", "Deployment", "d", "Reason", null, null, "  ");
+	void recordEvent_deploymentIsOnlyRecordedWhenPresentAndNonBlank() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Deployment", "d", "Reason", null, null, "myapp"));
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Deployment", "d", "Reason", null, null, null));
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Deployment", "d", "Reason", null, null, "  "));
 
 		assertThat(count("kubeevents_deployment_total", "namespace", "ns", "deployment", "myapp", "type", "Warning"))
 				.isEqualTo(1);
 	}
 
 	@Test
-	void incrementEventFull_podKind_incrementsPodMetricWithoutReasonTag() {
-		metricsService.incrementEventFull("ns", "Warning", "Pod", "mypod", "OOMKilled", null, null, null);
+	void recordEvent_podKind_incrementsPodMetricWithoutReasonTag() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Pod", "mypod", "OOMKilled", null, null, null));
 
 		assertThat(count("kubeevents_pod_total", "namespace", "ns", "pod", "mypod", "type", "Warning"))
 				.isEqualTo(1);
 	}
 
 	@Test
-	void incrementEventFull_deploymentKind_incrementsDeploymentEventsMetricWithReasonTag() {
-		metricsService.incrementEventFull("ns", "Warning", "Deployment", "mydeploy", "FailedCreate", null, null,
-				null);
+	void recordEvent_deploymentKind_incrementsDeploymentEventsMetricWithReasonTag() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Deployment", "mydeploy", "FailedCreate", null, null,
+				null));
 
 		assertThat(count("kubeevents_deployment_events_total",
 				"namespace", "ns", "deployment", "mydeploy", "type", "Warning", "reason", "FailedCreate"))
@@ -138,8 +137,8 @@ class MetricsServiceTest {
 	}
 
 	@Test
-	void incrementEventFull_unknownKind_doesNotRegisterAnyKindSpecificMetric() {
-		metricsService.incrementEventFull("ns", "Warning", "Secret", "s", "Reason", null, null, null);
+	void recordEvent_unknownKind_doesNotRegisterAnyKindSpecificMetric() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Secret", "s", "Reason", null, null, null));
 
 		assertThat(registry.getMeters()).noneMatch(m -> m.getId().getName().endsWith("_events_total")
 				|| m.getId().getName().matches(".*kubeevents_(pod|replicaset|statefulset|daemonset|pvc|job|cronjob|ingress|pv)_total"));
@@ -158,30 +157,30 @@ class MetricsServiceTest {
 			"Killing,             kubeevents_killing_total",
 			"Preempting,          kubeevents_preempting_total"
 	})
-	void incrementEventFull_criticalReason_incrementsDedicatedNamespaceKindCounter(String reason, String metric) {
-		metricsService.incrementEventFull("ns", "Warning", "Pod", "p", reason, null, null, null);
+	void recordEvent_criticalReason_incrementsDedicatedNamespaceKindCounter(String reason, String metric) {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Pod", "p", reason, null, null, null));
 
 		assertThat(count(metric, "namespace", "ns", "kind", "Pod")).isEqualTo(1);
 	}
 
 	@ParameterizedTest
 	@CsvSource({"ErrImagePull", "ImagePullBackOff"})
-	void incrementEventFull_imagePullReasons_incrementImagePullErrorsCounterWithReasonTag(String reason) {
-		metricsService.incrementEventFull("ns", "Warning", "Pod", "p", reason, null, null, null);
+	void recordEvent_imagePullReasons_incrementImagePullErrorsCounterWithReasonTag(String reason) {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Pod", "p", reason, null, null, null));
 
 		assertThat(count("kubeevents_imagepull_errors_total", "namespace", "ns", "reason", reason)).isEqualTo(1);
 	}
 
 	@Test
-	void incrementEventFull_failedSchedulingReason_incrementsNamespaceOnlyCounter() {
-		metricsService.incrementEventFull("ns", "Warning", "Pod", "p", "FailedScheduling", null, null, null);
+	void recordEvent_failedSchedulingReason_incrementsNamespaceOnlyCounter() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Pod", "p", "FailedScheduling", null, null, null));
 
 		assertThat(count("kubeevents_failedscheduling_total", "namespace", "ns")).isEqualTo(1);
 	}
 
 	@Test
-	void incrementEventFull_evictedReason_incrementsNamespaceAndHostCounter() {
-		metricsService.incrementEventFull("ns", "Warning", "Pod", "p", "Evicted", null, "node1", null);
+	void recordEvent_evictedReason_incrementsNamespaceAndHostCounter() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Warning", "Pod", "p", "Evicted", null, "node1", null));
 
 		assertThat(count("kubeevents_evicted_total", "namespace", "ns", "host", "node1")).isEqualTo(1);
 	}
@@ -191,15 +190,15 @@ class MetricsServiceTest {
 			"NodeNotReady, NodeNotReady",
 			"NodeReady,    NodeReady"
 	})
-	void incrementEventFull_nodeReasons_incrementNodeReadyCounterWithReasonTag(String reason, String expectedTag) {
-		metricsService.incrementEventFull("ns", "Normal", "Node", "node1", reason, null, null, null);
+	void recordEvent_nodeReasons_incrementNodeReadyCounterWithReasonTag(String reason, String expectedTag) {
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Node", "node1", reason, null, null, null));
 
 		assertThat(count("kubeevents_node_ready_total", "node", "node1", "reason", expectedTag)).isEqualTo(1);
 	}
 
 	@Test
-	void incrementEventFull_ordinaryReason_doesNotIncrementAnyCriticalReasonCounter() {
-		metricsService.incrementEventFull("ns", "Normal", "Pod", "p", "Scheduled", null, null, null);
+	void recordEvent_ordinaryReason_doesNotIncrementAnyCriticalReasonCounter() {
+		metricsService.recordEvent(new EventOccurrence("ns", "Normal", "Pod", "p", "Scheduled", null, null, null));
 
 		assertThat(registry.getMeters()).noneMatch(m -> m.getId().getName().equals("kubeevents_oomkilled_total")
 				|| m.getId().getName().equals("kubeevents_backoff_total")

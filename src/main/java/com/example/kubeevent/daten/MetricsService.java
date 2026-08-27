@@ -5,8 +5,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 @Service
 public class MetricsService {
+
+        static final String UNKNOWN = "unknown";
 
         private static final String WATCH_ERRORS_TOTAL = "kubeevents_watch_errors_total";
         private static final String WATCH_RESTARTS_TOTAL = "kubeevents_watch_restarts_total";
@@ -50,110 +57,76 @@ public class MetricsService {
                                 .register(registry);
         }
 
-        public void incrementEventFull(
-                        String namespace,
-                        String type,
-                        String kind,
-                        String name,
-                        String reason,
-                        String component,
-                        String host,
-                        String deployment) {
+        public void recordEvent(EventOccurrence event) {
+                String safeNamespace = safe(event.namespace());
+                String safeType = safe(event.type());
+                String safeKind = safe(event.kind());
+                String safeName = safe(event.name());
+                String safeReason = safe(event.reason());
+                String safeHost = safe(event.host());
 
-                String safeNamespace = safe(namespace);
-                String safeType = safe(type);
-                String safeKind = safe(kind);
-                String safeName = safe(name);
-                String safeReason = safe(reason);
-                String safeHost = safe(host);
+                recordCoreCounters(safeNamespace, safeType);
+                recordInvolvedObjectCounters(event, safeNamespace, safeType, safeKind, safeReason);
+                recordOptionalCounters(event, safeNamespace, safeType);
+                recordKindSpecificCounter(event.kind(), safeNamespace, safeName, safeType, safeReason);
+                recordCriticalReasonCounter(safeReason, safeNamespace, safeKind, safeName, safeHost);
+        }
 
-                // 1) Gesamt
+        // Gesamt / Typ / Namespace / Namespace+Typ
+        private void recordCoreCounters(String safeNamespace, String safeType) {
                 increment(TOTAL);
-
-                // 2) Typ
                 increment(TYPE_TOTAL, "type", safeType);
-
-                // 3) Namespace
                 increment(NAMESPACE_TOTAL, "namespace", safeNamespace);
-
-                // 4) Namespace + Typ
                 increment(NAMESPACE_TYPE_TOTAL, "namespace", safeNamespace, "type", safeType);
+        }
 
-                // 5) Involved Object (ohne involved_name wegen Kardinalitäts-Explosion)
+        // Involved Object (ohne involved_name wegen Kardinalitäts-Explosion) + dedizierte Reason-Metrik
+        private void recordInvolvedObjectCounters(EventOccurrence event, String safeNamespace, String safeType,
+                        String safeKind, String safeReason) {
                 increment(INVOLVED_TOTAL,
                                 "namespace", safeNamespace,
                                 "type", safeType,
                                 "kind", safeKind,
                                 "reason", safeReason,
-                                "component", safe(component),
-                                "host", safeHost);
+                                "component", safe(event.component()),
+                                "host", safe(event.host()));
 
-                // 5b) Reason als dedizierte Metrik für einfaches Alerting
                 increment(REASON_TOTAL, "namespace", safeNamespace, "reason", safeReason, "type", safeType);
+        }
 
-                // 6) Component (nur wenn vorhanden)
-                if (component != null && !"unknown".equals(component)) {
+        // Component / Node / Deployment, jeweils nur wenn vorhanden
+        private void recordOptionalCounters(EventOccurrence event, String safeNamespace, String safeType) {
+                String component = event.component();
+                if (component != null && !UNKNOWN.equals(component)) {
                         increment(COMPONENT_TOTAL, "component", component);
                 }
 
-                // 7) Node/Host (nur wenn vorhanden)
-                if (host != null && !"unknown".equals(host)) {
+                String host = event.host();
+                if (host != null && !UNKNOWN.equals(host)) {
                         increment(NODE_TOTAL, "host", host);
                 }
 
-                // 8) Deployment (nur wenn vorhanden)
+                String deployment = event.deployment();
                 if (deployment != null && !deployment.isBlank()) {
                         increment(DEPLOYMENT_TOTAL, "namespace", safeNamespace, "deployment", deployment, "type", safeType);
                 }
+        }
 
-                // 9-17) Pod / Deployment / ReplicaSet / StatefulSet / DaemonSet / PVC / Node / Job / CronJob / Ingress / PV
+        // Pod / Deployment / ReplicaSet / StatefulSet / DaemonSet / PVC / Node / Job / CronJob / Ingress / PV
+        private void recordKindSpecificCounter(String kind, String safeNamespace, String safeName, String safeType,
+                        String safeReason) {
                 EventKind eventKind = EventKind.fromK8sKind(kind);
                 if (eventKind != null) {
                         increment(eventKind.metricName, eventKind.tags(safeNamespace, safeName, safeType, safeReason));
                 }
+        }
 
-                // 18) Kritische Reasons
-                if ("OOMKilled".equals(safeReason)) {
-                        increment(OOMKILLED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("BackOff".equals(safeReason)) {
-                        increment(BACKOFF_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("ErrImagePull".equals(safeReason) || "ImagePullBackOff".equals(safeReason)) {
-                        increment(IMAGEPULL_ERRORS_TOTAL, "namespace", safeNamespace, "reason", safeReason);
-                }
-                if ("FailedScheduling".equals(safeReason)) {
-                        increment(FAILEDSCHEDULING_TOTAL, "namespace", safeNamespace);
-                }
-                if ("Evicted".equals(safeReason)) {
-                        increment(EVICTED_TOTAL, "namespace", safeNamespace, "host", safeHost);
-                }
-                if ("FailedMount".equals(safeReason)) {
-                        increment(FAILEDMOUNT_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("CrashLoopBackOff".equals(safeReason)) {
-                        increment(CRASHLOOPBACKOFF_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("Unhealthy".equals(safeReason)) {
-                        increment(UNHEALTHY_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("Failed".equals(safeReason)) {
-                        increment(FAILED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("NodeNotReady".equals(safeReason) || "NodeReady".equals(safeReason)) {
-                        increment(NODE_READY_TOTAL, "node", safeName, "reason", safeReason);
-                }
-                if ("FailedCreate".equals(safeReason)) {
-                        increment(FAILEDCREATE_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("DeadlineExceeded".equals(safeReason)) {
-                        increment(DEADLINEEXCEEDED_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("Killing".equals(safeReason)) {
-                        increment(KILLING_TOTAL, "namespace", safeNamespace, "kind", safeKind);
-                }
-                if ("Preempting".equals(safeReason)) {
-                        increment(PREEMPTING_TOTAL, "namespace", safeNamespace, "kind", safeKind);
+        private void recordCriticalReasonCounter(String safeReason, String safeNamespace, String safeKind,
+                        String safeName, String safeHost) {
+                CriticalReason criticalReason = CriticalReason.fromReason(safeReason);
+                if (criticalReason != null) {
+                        increment(criticalReason.metricName,
+                                        criticalReason.tags(safeNamespace, safeKind, safeName, safeReason, safeHost));
                 }
         }
 
@@ -170,6 +143,57 @@ public class MetricsService {
         }
 
         private String safe(String v) {
-                return (v == null || v.isBlank()) ? "unknown" : v;
+                return (v == null || v.isBlank()) ? UNKNOWN : v;
+        }
+
+        // Gibt "kritischen" Reasons (Alerting-relevant) je eine eigene, gezielt getaggte Metrik
+        private enum CriticalReason {
+                OOM_KILLED("OOMKilled", OOMKILLED_TOTAL, TagShape.NAMESPACE_KIND),
+                BACK_OFF("BackOff", BACKOFF_TOTAL, TagShape.NAMESPACE_KIND),
+                ERR_IMAGE_PULL("ErrImagePull", IMAGEPULL_ERRORS_TOTAL, TagShape.NAMESPACE_REASON),
+                IMAGE_PULL_BACKOFF("ImagePullBackOff", IMAGEPULL_ERRORS_TOTAL, TagShape.NAMESPACE_REASON),
+                FAILED_SCHEDULING("FailedScheduling", FAILEDSCHEDULING_TOTAL, TagShape.NAMESPACE_ONLY),
+                EVICTED("Evicted", EVICTED_TOTAL, TagShape.NAMESPACE_HOST),
+                FAILED_MOUNT("FailedMount", FAILEDMOUNT_TOTAL, TagShape.NAMESPACE_KIND),
+                CRASH_LOOP_BACKOFF("CrashLoopBackOff", CRASHLOOPBACKOFF_TOTAL, TagShape.NAMESPACE_KIND),
+                UNHEALTHY("Unhealthy", UNHEALTHY_TOTAL, TagShape.NAMESPACE_KIND),
+                FAILED("Failed", FAILED_TOTAL, TagShape.NAMESPACE_KIND),
+                NODE_NOT_READY("NodeNotReady", NODE_READY_TOTAL, TagShape.NODE_REASON),
+                NODE_READY("NodeReady", NODE_READY_TOTAL, TagShape.NODE_REASON),
+                FAILED_CREATE("FailedCreate", FAILEDCREATE_TOTAL, TagShape.NAMESPACE_KIND),
+                DEADLINE_EXCEEDED("DeadlineExceeded", DEADLINEEXCEEDED_TOTAL, TagShape.NAMESPACE_KIND),
+                KILLING("Killing", KILLING_TOTAL, TagShape.NAMESPACE_KIND),
+                PREEMPTING("Preempting", PREEMPTING_TOTAL, TagShape.NAMESPACE_KIND);
+
+                private enum TagShape {
+                        NAMESPACE_KIND, NAMESPACE_REASON, NAMESPACE_ONLY, NAMESPACE_HOST, NODE_REASON
+                }
+
+                private static final Map<String, CriticalReason> BY_REASON = Arrays.stream(values())
+                                .collect(Collectors.toMap(r -> r.reason, Function.identity()));
+
+                final String reason;
+                final String metricName;
+                private final TagShape shape;
+
+                CriticalReason(String reason, String metricName, TagShape shape) {
+                        this.reason = reason;
+                        this.metricName = metricName;
+                        this.shape = shape;
+                }
+
+                static CriticalReason fromReason(String reason) {
+                        return BY_REASON.get(reason);
+                }
+
+                String[] tags(String namespace, String kind, String name, String reason, String host) {
+                        return switch (shape) {
+                                case NAMESPACE_KIND -> new String[] { "namespace", namespace, "kind", kind };
+                                case NAMESPACE_REASON -> new String[] { "namespace", namespace, "reason", reason };
+                                case NAMESPACE_ONLY -> new String[] { "namespace", namespace };
+                                case NAMESPACE_HOST -> new String[] { "namespace", namespace, "host", host };
+                                case NODE_REASON -> new String[] { "node", name, "reason", reason };
+                        };
+                }
         }
 }

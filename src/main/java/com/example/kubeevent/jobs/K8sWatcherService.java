@@ -1,5 +1,6 @@
 package com.example.kubeevent.jobs;
 
+import com.example.kubeevent.daten.EventOccurrence;
 import com.example.kubeevent.daten.K8sEvent;
 import com.example.kubeevent.daten.K8sEventRepository;
 import com.example.kubeevent.daten.MetricsService;
@@ -277,7 +278,7 @@ public class K8sWatcherService {
 
             repository.save(entity);
 
-            metricsService.incrementEventFull(namespace, type, kind, name, reason, component, host, deployment);
+            metricsService.recordEvent(new EventOccurrence(namespace, type, kind, name, reason, component, host, deployment));
 
         } catch (DataIntegrityViolationException e) {
             log.debug("[WATCH] Duplicate event ignored (uid+count already exists)");

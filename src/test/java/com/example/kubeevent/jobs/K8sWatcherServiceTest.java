@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.kubeevent.daten.EventOccurrence;
 import com.example.kubeevent.daten.K8sEvent;
 import com.example.kubeevent.daten.K8sEventRepository;
 import com.example.kubeevent.daten.MetricsService;
@@ -96,8 +97,7 @@ class K8sWatcherServiceTest {
 		assertThat(saved.getSourceHost()).isEqualTo(HOST);
 		assertThat(saved.getCount()).isEqualTo(COUNT);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, COMPONENT, HOST, null);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, COMPONENT, HOST, null));
 		verify(metricsService, never()).incrementError();
 	}
 
@@ -108,7 +108,7 @@ class K8sWatcherServiceTest {
 		service.processIncomingEvent(newEvent());
 
 		verify(repository, never()).save(any());
-		verify(metricsService, never()).incrementEventFull(any(), any(), any(), any(), any(), any(), any(), any());
+		verify(metricsService, never()).recordEvent(any());
 	}
 
 	@Test
@@ -118,8 +118,7 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, DEPLOYMENT_KIND, DEPLOYMENT_NAME, REASON, COMPONENT, HOST, DEPLOYMENT_NAME);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, DEPLOYMENT_KIND, DEPLOYMENT_NAME, REASON, COMPONENT, HOST, DEPLOYMENT_NAME));
 	}
 
 	@Test
@@ -129,9 +128,8 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, REPLICASET_KIND, REPLICASET_NAME_WITH_HASH, REASON, COMPONENT, HOST,
-				DEPLOYMENT_NAME);
+		verify(metricsService).recordEvent(new EventOccurrence(
+				NAMESPACE, TYPE, REPLICASET_KIND, REPLICASET_NAME_WITH_HASH, REASON, COMPONENT, HOST, DEPLOYMENT_NAME));
 	}
 
 	@Test
@@ -141,8 +139,7 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, REPLICASET_KIND, DEPLOYMENT_NAME, REASON, COMPONENT, HOST, null);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, REPLICASET_KIND, DEPLOYMENT_NAME, REASON, COMPONENT, HOST, null));
 	}
 
 	@Test
@@ -151,8 +148,7 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, UNKNOWN, UNKNOWN, REASON, COMPONENT, HOST, null);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, UNKNOWN, UNKNOWN, REASON, COMPONENT, HOST, null));
 	}
 
 	@Test
@@ -161,8 +157,7 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, REPORTING_COMPONENT, UNKNOWN, null);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, REPORTING_COMPONENT, UNKNOWN, null));
 	}
 
 	@Test
@@ -171,8 +166,7 @@ class K8sWatcherServiceTest {
 
 		service.processIncomingEvent(event);
 
-		verify(metricsService).incrementEventFull(
-				NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, UNKNOWN, UNKNOWN, null);
+		verify(metricsService).recordEvent(new EventOccurrence(NAMESPACE, TYPE, POD_KIND, POD_NAME, REASON, UNKNOWN, UNKNOWN, null));
 	}
 
 	@Test
