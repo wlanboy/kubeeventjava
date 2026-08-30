@@ -17,7 +17,7 @@ pvc:
   name: kubeeventjava-tmp-pvc
   accessModes:
     - ReadWriteOnce
-  storageClassName: "local-path"
+  storageClassName: ""
   size: "100Mi"
 
 volume:
